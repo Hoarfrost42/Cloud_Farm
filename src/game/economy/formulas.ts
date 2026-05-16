@@ -89,14 +89,7 @@ export function getPassiveWeatherGain(state: WeatherReactorState) {
     WEATHER_AMPLIFIER_LATE_SOFT_CAP_START,
     WEATHER_AMPLIFIER_LATE_SOFT_CAP_SCALE,
   );
-  const heavyRainLevel = getDirectMultiplierSoftCappedLevel(
-    state,
-    state.upgrades.heavyRain,
-    HEAVY_RAIN_SOFT_CAP_START,
-    HEAVY_RAIN_SOFT_CAP_SCALE,
-    HEAVY_RAIN_LATE_SOFT_CAP_START,
-    HEAVY_RAIN_LATE_SOFT_CAP_SCALE,
-  );
+  const heavyRainLevel = getHeavyRainEffectiveLevel(state);
   const monsoonPullLevel = getDirectMultiplierSoftCappedLevel(
     state,
     state.upgrades.monsoonPull,
@@ -132,8 +125,12 @@ export function getDirectMultiplierSoftCappedLevel(
   lateStart: number,
   lateScale: number,
 ) {
-  if (state.totalMonsoonCycles <= 0 || state.skyHeartPulseLevel >= 3) {
+  if (state.totalMonsoonCycles <= 0) {
     return level;
+  }
+
+  if (state.totalClimateRewrites >= 2) {
+    return getSoftCappedLevel(level, lateStart * 0.95, lateScale * 0.9);
   }
 
   if (state.totalStormFronts <= 1) {
@@ -152,6 +149,20 @@ export function getSoftCappedLevel(level: number, start: number, scale: number) 
   }
 
   return Math.min(level, start + Math.sqrt(level - start) * scale);
+}
+
+/**
+ * Returns the effective thick-rain level shared by passive, click, and auto-click weather.
+ */
+export function getHeavyRainEffectiveLevel(state: WeatherReactorState) {
+  return getDirectMultiplierSoftCappedLevel(
+    state,
+    state.upgrades.heavyRain,
+    HEAVY_RAIN_SOFT_CAP_START,
+    HEAVY_RAIN_SOFT_CAP_SCALE,
+    HEAVY_RAIN_LATE_SOFT_CAP_START,
+    HEAVY_RAIN_LATE_SOFT_CAP_SCALE,
+  );
 }
 
 /**
@@ -241,7 +252,7 @@ export function getCloudTouchAmount(state: WeatherReactorState) {
   }
 
   const rankWeatherMultiplier = getRainRankWeatherMultiplier(state);
-  const rainMultiplier = Math.pow(HEAVY_RAIN_WEATHER_MULTIPLIER, state.upgrades.heavyRain);
+  const rainMultiplier = Math.pow(HEAVY_RAIN_WEATHER_MULTIPLIER, getHeavyRainEffectiveLevel(state));
   const coreClickMultiplier = 1 + state.totalCloudCores * 0.015;
   return baseAmount * rankWeatherMultiplier * rainMultiplier * coreClickMultiplier;
 }
@@ -259,7 +270,8 @@ export function getClickCooldownSeconds(state: WeatherReactorState) {
 export function getProducerMultiplier(state: WeatherReactorState) {
   const livingSoilMultiplier = state.permanentUpgrades.includes("livingSoil") ? 1.25 : 1;
   const monsoonFocusMultiplier = 1 + state.upgrades.monsoonFocus * MONSOON_FOCUS_PRODUCER_BONUS;
-  const producerOrders = state.upgrades.thunderReturn * 4
+  const thunderReturnLevel = getSoftCappedLevel(state.upgrades.thunderReturn, 10, 1.8);
+  const producerOrders = thunderReturnLevel * 4
     + state.stormUpgrades.thunderUpdraft * 3
     + state.pressureUpgrades.updraft * 1.5
     + (state.activeClimateLaws.includes("thunderCloud") ? 15 : 0);
@@ -360,10 +372,11 @@ export function getFrontEchoExponentBonus(state: WeatherReactorState) {
  */
 export function getClimateLawExponentBonus(state: WeatherReactorState) {
   const activeBonus = state.activeClimateLaws.includes("backflow") ? 1 : 0;
+  const climateEchoLevel = getSoftCappedLevel(state.upgrades.climateEcho, 4, 1.3);
   return Math.min(
     MAX_CLIMATE_EXPONENT_BONUS,
-    3 * state.totalClimateThreads
-      + 3 * state.upgrades.climateEcho
+    2.6 * state.totalClimateThreads
+      + 2.4 * climateEchoLevel
       + 3 * state.climateLaws.condensationLaw
       + 4 * state.climateLaws.deepRootLaw
       + 4 * state.climateLaws.stormWeaving

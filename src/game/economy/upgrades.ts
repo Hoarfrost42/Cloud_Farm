@@ -196,7 +196,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: "thunderReturn",
     name: "雷云回流",
-    description: "生产者公共乘区获得数量级加成。",
+    description: "生产者公共乘区获得数量级加成，后续有边际递减。",
     baseCost: { weather: 1e50 },
     costGrowth: 10000,
     costSequence: { weather: [1e50, 1e80, 1e120] },
@@ -212,7 +212,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: "climateEcho",
     name: "气候回声",
-    description: "气候指数奖励增加。",
+    description: "气候指数奖励增加，后续有边际递减。",
     baseCost: { weather: 1e165 },
     costGrowth: 10000,
     costSequence: { weather: [1e165, 1e190, 1e220] },
@@ -228,7 +228,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: "highCirculation",
     name: "高空环流",
-    description: "降低后续季风目标指数。",
+    description: "降低后续季风目标指数，后续有压缩上限。",
     baseCost: { weather: 1e185 },
     costGrowth: 10000,
     costSequence: { weather: [1e185, 1e215, 1e245] },
@@ -236,7 +236,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: "skyWarmup",
     name: "天穹预热",
-    description: "降低天空心脏脉冲成本指数。",
+    description: "降低天空心脏脉冲目标指数，后续有压缩上限。",
     baseCost: { weather: 1e210 },
     costGrowth: 10000,
     costSequence: { weather: [1e210, 1e240] },
@@ -692,17 +692,17 @@ export function getUpgradeActionDescription(state: WeatherReactorState, upgrade:
     case "frontRain":
       return "当前前线的气压指数奖励增加。";
     case "thunderReturn":
-      return "生产者公共乘区获得 +4 orders。";
+      return "生产者公共乘区获得数量级加成，后续有边际递减。";
     case "overloadedRain":
       return "最大雨阶提高，并降低雨阶需求指数。";
     case "climateEcho":
-      return "气候指数奖励增加 +6 orders。";
+      return "气候指数奖励增加，后续有边际递减。";
     case "deepVapor":
       return "雨滴 log 系数提高。";
     case "highCirculation":
-      return "后续季风目标指数降低。";
+      return "后续季风目标指数降低，后续有压缩上限。";
     case "skyWarmup":
-      return "天空心脏脉冲成本降低。";
+      return "天空心脏脉冲目标指数降低，后续有压缩上限。";
     default:
       return upgrade.description;
   }

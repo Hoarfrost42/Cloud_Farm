@@ -250,6 +250,13 @@ export default function App() {
       const upgrade = getUpgrade(upgradeId);
       const cost = getUpgradeCost(currentState, upgrade);
 
+      if (!isUpgradeVisible(currentState, upgradeId)) {
+        return {
+          ...currentState,
+          notice: createNotice("warning", "这个本轮升级还没有显露。"),
+        };
+      }
+
       if (isRunUpgradeMaxed(currentState, upgrade)) {
         return {
           ...currentState,

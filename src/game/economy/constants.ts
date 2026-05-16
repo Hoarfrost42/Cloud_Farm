@@ -49,12 +49,12 @@ export const MAX_RAIN_COMPRESSION_EXPONENT = 18;
 export const MAX_CLOUD_CORE_EXPONENT_BONUS = 24;
 export const MAX_PRESSURE_EXPONENT_BONUS = 12;
 export const MAX_STORM_EXPONENT_BONUS = 48;
-export const MAX_CLIMATE_EXPONENT_BONUS = 70;
+export const MAX_CLIMATE_EXPONENT_BONUS = 52;
 export const FRONT_ECHO_TARGET_OFFSET = 25;
 export const FRONT_ECHO_REQUIREMENT_STEP = 5;
 export const FRONT_ECHO_BONUS_EXPONENT = 3.8;
-export const FRONT_ECHO_CLIMATE_BONUS_EXPONENT = 4.4;
-export const FRONT_ECHO_SKY_BONUS_EXPONENT = 6.6;
+export const FRONT_ECHO_CLIMATE_BONUS_EXPONENT = 2.6;
+export const FRONT_ECHO_SKY_BONUS_EXPONENT = 3.2;
 export const MAX_FRONT_ECHOES_PER_FRONT = 5;
 
 export const STORM_TRUNK_UPGRADES = [
@@ -166,25 +166,26 @@ export const MAINLINE_MILESTONES: MainlineMilestone[] = [
     requiredStormFronts: 2,
   },
   { id: "monsoon_9", kind: "monsoon", title: "第九次季风", targetExp: 240, requiredRainRanks: 18 },
+  { id: "monsoon_10", kind: "monsoon", title: "第十次季风", targetExp: 255, requiredRainRanks: 19 },
   {
     id: "storm_front_3",
     kind: "stormFront",
     title: "第三风暴前线",
-    targetExp: 265,
+    targetExp: 270,
     requiredRainRanks: 20,
-    requiredMonsoonsInFront: 1,
+    requiredMonsoonsInFront: 2,
   },
   {
     id: "climate_rewrite_2",
     kind: "climateRewrite",
     title: "第二次气候改写",
-    targetExp: 276,
+    targetExp: 288,
     requiredStormFronts: 3,
   },
-  { id: "sky_pulse_1", kind: "skyPulse", title: "天空心脏脉冲 I", targetExp: 295 },
-  { id: "sky_pulse_2", kind: "skyPulse", title: "天空心脏脉冲 II", targetExp: 303 },
-  { id: "sky_pulse_3", kind: "skyPulse", title: "天空心脏脉冲 III", targetExp: 306 },
+  { id: "sky_pulse_1", kind: "skyPulse", title: "天空心脏脉冲 I", targetExp: 260 },
+  { id: "sky_pulse_2", kind: "skyPulse", title: "天空心脏脉冲 II", targetExp: 280 },
+  { id: "sky_pulse_3", kind: "skyPulse", title: "天空心脏脉冲 III", targetExp: 292 },
   { id: "sky_heart", kind: "ending", title: "点燃天空心脏", targetExp: 308 },
 ];
 
-export const SKY_HEART_PULSE_BONUS_EXPONENTS = [8, 6, 5];
+export const SKY_HEART_PULSE_BONUS_EXPONENTS = [6, 4, 3];

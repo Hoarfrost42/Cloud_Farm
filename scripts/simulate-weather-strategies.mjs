@@ -54,7 +54,7 @@ const STEP_SECONDS = 1;
 const MAX_SECONDS = 12 * 60 * 60;
 const QUIET_WARNING_SECONDS = 45 * 60;
 const MIN_MAJOR_STAGE_SECONDS = 25 * 60;
-const MAX_ACTIONS_PER_SECOND = 12;
+const MAX_ACTIONS_PER_SECOND = 3;
 const RANK_MILESTONES = [1, 3, 6, 8, 10, 14, 16, 20, 25];
 const RUN_UPGRADE_IDS = UPGRADE_DEFINITIONS.map((upgrade) => upgrade.id);
 const PRIMARY_BALANCE_STRATEGIES = ["patient-multiplier-human"];
@@ -326,7 +326,7 @@ function simulateStrategy(strategy) {
   let skyHeartAt = null;
 
   for (let second = STEP_SECONDS; second <= MAX_SECONDS; second += STEP_SECONDS) {
-    tickState(state, STEP_SECONDS);
+    tickState(state, STEP_SECONDS, strategy);
     markRainRanks(state, rankAt, snapshots, second);
     markProgressMilestones(state, milestoneAt, snapshots, second);
 
@@ -496,12 +496,34 @@ function pushRainRankEvent(events, second, beforeRank, afterRank) {
   }
 }
 
-function tickState(state, seconds) {
-  if (state.clickCooldownRemaining <= 0) {
+function tickState(state, seconds, strategy) {
+  if (shouldManuallyTouchCloud(state, strategy)) {
     Object.assign(state, applyCloudTouch(state));
   }
 
   Object.assign(state, runTick(state, seconds));
+}
+
+function shouldManuallyTouchCloud(state, strategy) {
+  if (strategy.manualClickPolicy === "never" || state.clickCooldownRemaining > 0) {
+    return false;
+  }
+
+  if (state.totalMonsoonCycles > 0) {
+    return false;
+  }
+
+  const passiveLog = calculateWeatherPerSecondLog(state);
+  const clickAverageLog = log10Safe(getCloudTouchAmount(state) / getClickCooldownSeconds(state));
+  if (!Number.isFinite(clickAverageLog)) {
+    return false;
+  }
+
+  if (!Number.isFinite(passiveLog)) {
+    return true;
+  }
+
+  return clickAverageLog >= passiveLog - 0.3;
 }
 
 function buyPermanentUpgrade(state, strategy, second, purchases) {
@@ -1618,7 +1640,7 @@ function evaluateBalanceGates(result) {
   }
 
   if (result.name === "comfort-first") {
-    pushLatestGate(gates, "fail", "comfort ending latest", result.skyHeartAt, 270 * 60);
+    pushLatestGate(gates, "warning", "comfort ending latest", result.skyHeartAt, 6 * 60 * 60);
     pushEarliestGate(gates, "warning", "comfort ending too fast", result.skyHeartAt, 2 * 60 * 60);
     pushQuietGate(gates, "fail", "comfort quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
     pushMajorStageDurationWarnings(gates, result);

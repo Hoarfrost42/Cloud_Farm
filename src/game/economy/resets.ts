@@ -208,17 +208,28 @@ export function getCurrentMilestoneTargetExp(state: WeatherReactorState) {
   if (milestone.kind === "monsoon") {
     targetExp -= state.pressureUpgrades.frontCompression * 3;
     targetExp -= state.stormUpgrades.frontScar * 4;
-    targetExp -= state.upgrades.highCirculation * 5;
+    targetExp -= Math.min(30, getSoftCappedRunTargetCompression(state.upgrades.highCirculation, 3, 1.2) * 2);
     targetExp += state.activeClimateLaws.includes("backflow") ? 5 : 0;
   }
 
   if (milestone.kind === "skyPulse") {
-    targetExp -= state.upgrades.skyWarmup * 5;
+    targetExp -= Math.min(24, getSoftCappedRunTargetCompression(state.upgrades.skyWarmup, 3, 1.2) * 2);
     targetExp -= state.climateLaws.skyHeartOmen > 0 ? 5 : 0;
     targetExp -= state.activeClimateLaws.includes("shortDay") ? 10 : 0;
   }
 
   return Math.max(0, targetExp);
+}
+
+/**
+ * Smooths run-only target compression so milestone goals cannot be erased in one run.
+ */
+function getSoftCappedRunTargetCompression(level: number, start: number, scale: number) {
+  if (level <= start) {
+    return level;
+  }
+
+  return start + Math.sqrt(level - start) * scale;
 }
 
 /**
@@ -661,16 +672,46 @@ export function performClimateRewrite<T extends WeatherReactorState>(state: T): 
 }
 
 /**
- * Buys the next sky-heart pulse.
+ * Lights the next sky-heart pulse and starts a fresh terminal push.
  */
 export function performSkyHeartPulse<T extends WeatherReactorState>(state: T): T {
   if (!canBuySkyHeartPulse(state) || state.skyHeartPulseLevel >= SKY_HEART_PULSE_BONUS_EXPONENTS.length) {
     return state;
   }
 
+  const resetState = createInitialState({
+    cloudCores: state.cloudCores,
+    totalCloudCores: state.totalCloudCores,
+    monsoonCycles: state.monsoonCycles,
+    totalMonsoonCycles: state.totalMonsoonCycles,
+    monsoonCyclesInFront: 0,
+    pressure: 0,
+    totalPressureSpentThisFront: 0,
+    frontEchoesThisFront: 0,
+    stormCells: state.stormCells,
+    totalStormCells: state.totalStormCells,
+    totalStormFronts: state.totalStormFronts,
+    stormFrontsInClimate: state.stormFrontsInClimate,
+    climateThreads: state.climateThreads,
+    totalClimateThreads: state.totalClimateThreads,
+    totalClimateRewrites: state.totalClimateRewrites,
+    activeClimateLaws: state.activeClimateLaws,
+    stormUpgrades: state.stormUpgrades,
+    skyHeartPulseLevel: state.skyHeartPulseLevel + 1,
+    permanentUpgrades: state.permanentUpgrades,
+    skyHeartAwakened: state.skyHeartAwakened,
+    elapsedSeconds: state.elapsedSeconds,
+    bestWeather: state.bestWeather,
+    bestWeatherExp: state.bestWeatherExp,
+  });
+
   return {
     ...state,
-    skyHeartPulseLevel: state.skyHeartPulseLevel + 1,
+    ...resetState,
+    pressureUpgrades: createEmptyPressureUpgrades(),
+    stormUpgrades: state.stormUpgrades,
+    climateLaws: state.climateLaws,
+    clickCooldownRemaining: 0,
   };
 }
 
