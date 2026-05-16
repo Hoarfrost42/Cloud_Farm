@@ -50,6 +50,7 @@ import {
   getUpgrade,
   getUpgradeActionDescription,
   getUpgradeCost,
+  isRunUpgradeMaxed,
   isUpgradeVisible,
   log10Safe,
   normalizeState,
@@ -234,6 +235,13 @@ export default function App() {
     setState((currentState) => {
       const upgrade = getUpgrade(upgradeId);
       const cost = getUpgradeCost(currentState, upgrade);
+
+      if (isRunUpgradeMaxed(currentState, upgrade)) {
+        return {
+          ...currentState,
+          notice: createNotice("warning", `${upgrade.name} 已达到上限。`),
+        };
+      }
 
       if (!canPay(currentState.resources, cost)) {
         return {
@@ -761,7 +769,8 @@ export default function App() {
           <div className="upgrade-list">
             {visibleRunUpgrades.map((upgrade) => {
               const cost = getUpgradeCost(state, upgrade);
-              const affordable = canPay(state.resources, cost);
+              const maxed = isRunUpgradeMaxed(state, upgrade);
+              const affordable = !maxed && canPay(state.resources, cost);
               const upgradeAction = getUpgradeActionDescription(state, upgrade, showExactDecimals);
               const beforeRateLog = calculateWeatherPerSecondLog(state);
               const afterRateLog = previewRunUpgradeRateLog(state, upgrade.id);
@@ -772,6 +781,7 @@ export default function App() {
                   type="button"
                   className={affordable ? "upgrade-card upgrade-card--ready" : "upgrade-card"}
                   onClick={() => buyUpgrade(upgrade.id)}
+                  disabled={maxed}
                 >
                   <span>
                     <strong>{upgrade.name} Lv.{state.upgrades[upgrade.id]}</strong>
@@ -780,7 +790,7 @@ export default function App() {
                       速率 {formatLogRate(beforeRateLog, showExactDecimals)} → {formatLogRate(afterRateLog, showExactDecimals)}/秒
                     </em>
                   </span>
-                  <small>{displayCost(cost)}</small>
+                  <small>{maxed ? "MAX" : displayCost(cost)}</small>
                 </button>
               );
             })}
@@ -1175,6 +1185,10 @@ function buildMilestoneActionText(milestone: ReturnType<typeof getCurrentMainlin
 
 function previewRunUpgradeRateLog(state: ReactorState, upgradeId: UpgradeId) {
   const upgrade = getUpgrade(upgradeId);
+  if (isRunUpgradeMaxed(state, upgrade)) {
+    return calculateWeatherPerSecondLog(state);
+  }
+
   const cost = getUpgradeCost(state, upgrade);
   const nextState = {
     ...state,

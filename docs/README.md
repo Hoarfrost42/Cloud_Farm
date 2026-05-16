@@ -31,6 +31,8 @@
 | `weather-reactor-v12-change-summary.md` | v12 Formula C 与第一季风前调参历史 | 只作 v12 历史；和 v13 冲突时以 v13 总表为准 |
 | `weather-reactor-v12-lab-handoff.md` | v12 lab 初始交接记录 | 历史文档；不作为当前实现事实源 |
 | `weather-reactor-external-discussion-brief.md` | 给外部 GPT 或数值设计讨论的简报 | 已更新到 v13 讨论口径 |
+| `weather-reactor-simulation-strategy-notes.md` | 真人策略、模拟策略和风暴主干诊断记录 | 当前调参辅助事实源 |
+| `weather-reactor-test-strategy.md` | 测试策略与后续模拟增强建议 | 当前调参辅助参考 |
 | `archive/legacy-v0-pixi-phaser/README.md` | 旧 v0/Pixi/Phaser 路线归档说明 | 只作历史参考 |
 
 ## 当前代码事实源

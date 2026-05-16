@@ -42,6 +42,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     baseCost: { weather: 10 },
     costGrowth: 100,
     costSequence: { weather: [10, 100, 1000, 10000, 100000] },
+    maxLevel: 6,
   },
   {
     id: "dropletSeed",
@@ -145,6 +146,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     description: "把部分点击收益转为每秒自动天气活力。",
     baseCost: { weather: 10000000, roots: 1000 },
     costGrowth: 10,
+    maxLevel: 100,
   },
   {
     id: "autoRank",
@@ -557,6 +559,15 @@ export function getUpgrade(upgradeId: UpgradeId) {
 }
 
 /**
+ * Returns whether a run upgrade has reached its designed cap.
+ */
+export function isRunUpgradeMaxed(state: WeatherReactorState, upgrade: UpgradeDefinition | UpgradeId) {
+  const resolvedUpgrade = typeof upgrade === "string" ? getUpgrade(upgrade) : upgrade;
+  return typeof resolvedUpgrade.maxLevel === "number"
+    && state.upgrades[resolvedUpgrade.id] >= resolvedUpgrade.maxLevel;
+}
+
+/**
  * Returns one permanent upgrade definition by id.
  */
 export function getPermanentUpgrade(upgradeId: string) {
@@ -599,6 +610,10 @@ export function getRecommendedUpgradeGroupId(
 ): UpgradeGroupId {
   const affordableGroup = unlockedGroups.find((group) => group.upgradeIds.some((upgradeId) => {
     if (!isUpgradeVisible(state, upgradeId)) {
+      return false;
+    }
+
+    if (isRunUpgradeMaxed(state, upgradeId)) {
       return false;
     }
 

@@ -108,6 +108,7 @@ export interface UpgradeDefinition {
   costGrowth: number;
   costExponent?: number;
   costSequence?: Partial<Record<ResourceKey, number[]>>;
+  maxLevel?: number;
 }
 
 export interface UpgradeGroupDefinition {

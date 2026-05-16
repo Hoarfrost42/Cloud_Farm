@@ -29,6 +29,7 @@ import {
   getStormCellGain,
   getUpgrade,
   getUpgradeCost,
+  isRunUpgradeMaxed,
   isUpgradeVisible,
   log10Safe,
   logSumExp10,
@@ -72,6 +73,8 @@ const PROGRESS_MILESTONES = [
   { id: "skyHeart", label: "天空心脏点燃", isReached: (state) => state.skyHeartAwakened },
 ];
 
+const CANONICAL_STORM_ORDER = ["frontMemory", "thunderUpdraft", "rainOverload", "stormBatch", "windEyeRelic", "frontScar", "stormPrism"];
+
 const strategies = [
   {
     name: "guided-human",
@@ -92,7 +95,7 @@ const strategies = [
       "returningMonsoonCore",
     ],
     pressureOrder: ["pressureGauge", "lowPressure", "updraft", "eyeWall", "frontCompression"],
-    stormOrder: ["frontMemory", "rainOverload", "thunderUpdraft", "stormBatch", "windEyeRelic", "frontScar", "stormPrism"],
+    stormOrder: CANONICAL_STORM_ORDER,
     climateOrder: ["condensationLaw", "deepRootLaw", "returningMonsoon", "stormWeaving", "cloudCoreRefraction", "skyHeartOmen", "climateCodex"],
     resetFirst: false,
   },
@@ -116,9 +119,10 @@ const strategies = [
       "returningMonsoonCore",
     ],
     pressureOrder: ["lowPressure", "updraft", "pressureGauge", "eyeWall", "frontCompression"],
-    stormOrder: ["frontMemory", "rainOverload", "thunderUpdraft", "stormBatch", "windEyeRelic", "frontScar", "stormPrism"],
+    stormOrder: CANONICAL_STORM_ORDER,
     climateOrder: ["condensationLaw", "deepRootLaw", "returningMonsoon", "stormWeaving", "cloudCoreRefraction", "skyHeartOmen", "climateCodex"],
     resetFirst: true,
+    resetRainRankBeforeRunUpgrades: true,
   },
   {
     name: "roi-greedy",
@@ -139,7 +143,7 @@ const strategies = [
       "livingSoil",
     ],
     pressureOrder: ["updraft", "eyeWall", "frontCompression", "pressureGauge", "lowPressure"],
-    stormOrder: ["thunderUpdraft", "rainOverload", "frontScar", "stormPrism", "stormBatch", "frontMemory", "windEyeRelic"],
+    stormOrder: CANONICAL_STORM_ORDER,
     climateOrder: ["deepRootLaw", "condensationLaw", "stormWeaving", "cloudCoreRefraction", "skyHeartOmen", "returningMonsoon", "climateCodex"],
     resetFirst: false,
   },
@@ -162,7 +166,7 @@ const strategies = [
       "returningMonsoonCore",
     ],
     pressureOrder: ["lowPressure", "pressureGauge", "eyeWall", "updraft", "frontCompression"],
-    stormOrder: ["frontMemory", "stormBatch", "windEyeRelic", "rainOverload", "thunderUpdraft", "frontScar", "stormPrism"],
+    stormOrder: CANONICAL_STORM_ORDER,
     climateOrder: ["returningMonsoon", "condensationLaw", "deepRootLaw", "cloudCoreRefraction", "stormWeaving", "skyHeartOmen", "climateCodex"],
     resetFirst: true,
   },
@@ -185,7 +189,7 @@ const strategies = [
       "returningMonsoonCore",
     ],
     pressureOrder: ["pressureGauge", "eyeWall", "updraft", "lowPressure", "frontCompression"],
-    stormOrder: ["rainOverload", "frontMemory", "stormBatch", "thunderUpdraft", "windEyeRelic", "frontScar", "stormPrism"],
+    stormOrder: CANONICAL_STORM_ORDER,
     climateOrder: ["condensationLaw", "returningMonsoon", "deepRootLaw", "stormWeaving", "skyHeartOmen", "cloudCoreRefraction", "climateCodex"],
     resetFirst: true,
   },
@@ -198,19 +202,20 @@ const strategies = [
       "dropletEcho",
       "cloudAutoTouch",
       "rainRankMastery",
+      "windEyeMemory",
       "livingSoil",
       "autoRainRank",
       "bulkRainRank",
       "rankCompressionCore",
       "monsoonLens",
-      "windEyeMemory",
       "cloudCorePrism",
       "returningMonsoonCore",
     ],
     pressureOrder: ["lowPressure", "updraft", "eyeWall", "frontCompression", "pressureGauge"],
-    stormOrder: ["frontMemory", "rainOverload", "thunderUpdraft", "stormBatch", "windEyeRelic", "frontScar", "stormPrism"],
+    stormOrder: CANONICAL_STORM_ORDER,
     climateOrder: ["condensationLaw", "deepRootLaw", "returningMonsoon", "stormWeaving", "cloudCoreRefraction", "skyHeartOmen", "climateCodex"],
     resetFirst: true,
+    resetRainRankBeforeRunUpgrades: true,
   },
 ];
 
@@ -361,8 +366,15 @@ function runStrategyAction(state, strategy, second, purchases, events) {
     return true;
   }
 
+  if (strategy.resetRainRankBeforeRunUpgrades && canClaimRainRank(state)) {
+    const beforeRank = state.rainRanks;
+    Object.assign(state, performRainRankReset(state));
+    pushRainRankEvent(events, second, beforeRank, state.rainRanks);
+    return true;
+  }
+
   const shouldProtectFirstLevels = ["rootWake", "cloudBloom", "windEye", "heavyRain", "monsoonPull"];
-  if (canClaimRainRank(state) && buyFirstMissingRunUpgrade(state, shouldProtectFirstLevels, second, purchases)) {
+  if (!strategy.resetRainRankBeforeRunUpgrades && canClaimRainRank(state) && buyFirstMissingRunUpgrade(state, shouldProtectFirstLevels, second, purchases)) {
     return true;
   }
 
@@ -524,6 +536,10 @@ function canBuyRunUpgrade(state, upgradeId) {
     return false;
   }
 
+  if (isRunUpgradeMaxed(state, upgradeId)) {
+    return false;
+  }
+
   return canPay(state.resources, getUpgradeCost(state, getUpgrade(upgradeId)));
 }
 
@@ -635,30 +651,31 @@ function getPatientRunOrder(state) {
   const clickBridge = shouldInvestInCloudTouch(state) ? ["cloudTouch"] : [];
   const milestone = getCurrentMainlineMilestone(state);
   const requiredRanks = milestone.requiredRainRanks ?? 10;
+  const firstInfrastructure = getPatientFirstInfrastructureOrder(state);
+  const producerBatch = getPatientProducerBatchOrder(state);
 
   if (state.rainRanks < 1) {
     return uniqueUpgradeOrder(["weatherAmplifier", "dropletSeed", ...clickBridge]);
   }
 
   if (state.rainRanks < 3) {
-    return uniqueUpgradeOrder(["rootWake", "weatherAmplifier", "dropletSeed", ...clickBridge]);
+    return uniqueUpgradeOrder([...firstInfrastructure, "weatherAmplifier", "dropletSeed", ...producerBatch, ...clickBridge]);
   }
 
   if (state.rainRanks < 6) {
-    return uniqueUpgradeOrder(["cloudBloom", "rootWake", "windEye", "weatherAmplifier", "dropletSeed", ...clickBridge]);
+    return uniqueUpgradeOrder([...firstInfrastructure, "weatherAmplifier", "dropletSeed", ...producerBatch, ...clickBridge]);
   }
 
   if (state.rainRanks < requiredRanks) {
-    return uniqueUpgradeOrder(["windEye", "cloudBloom", "rootWake", "heavyRain", "weatherAmplifier", "dropletSeed", ...clickBridge, "rankCompression"]);
+    return uniqueUpgradeOrder(["weatherAmplifier", "heavyRain", ...firstInfrastructure, ...producerBatch, "dropletSeed", ...clickBridge, "rankCompression"]);
   }
 
   return uniqueUpgradeOrder([
     "monsoonPull",
     "weatherAmplifier",
     "heavyRain",
-    "windEye",
-    "cloudBloom",
-    "rootWake",
+    ...firstInfrastructure,
+    ...producerBatch,
     "dropletSeed",
     "monsoonFocus",
     "stormMemory",
@@ -675,6 +692,26 @@ function getPatientRunOrder(state) {
     "autoDrizzle",
     ...getGuidedRunOrder(state),
   ]);
+}
+
+function getPatientFirstInfrastructureOrder(state) {
+  return ["rootWake", "cloudBloom", "windEye"].filter((upgradeId) => state.upgrades[upgradeId] <= 0);
+}
+
+function getPatientProducerBatchOrder(state) {
+  return ["windEye", "cloudBloom", "rootWake"].filter((upgradeId) => (
+    state.upgrades[upgradeId] > 0 && shouldBatchBuyProducerUpgrade(state, upgradeId)
+  ));
+}
+
+function shouldBatchBuyProducerUpgrade(state, upgradeId) {
+  const cost = getUpgradeCost(state, getUpgrade(upgradeId));
+  const weatherCost = cost.weather ?? 0;
+  if (weatherCost <= 0) {
+    return false;
+  }
+
+  return log10Safe(state.resources.weather) >= log10Safe(weatherCost) + 2;
 }
 
 function getNewPlayerVisibleRunOrder(state) {
@@ -709,8 +746,8 @@ function uniqueUpgradeOrder(order) {
 }
 
 function shouldInvestInCloudTouch(state) {
-  if (state.totalMonsoonCycles <= 0 && state.upgrades.cloudTouch < 3) {
-    return true;
+  if (!isUpgradeVisible(state, "cloudTouch")) {
+    return false;
   }
 
   if (state.upgrades.cloudTouch >= 3) {
@@ -718,45 +755,128 @@ function shouldInvestInCloudTouch(state) {
   }
 
   const passiveLog = calculateWeatherPerSecondLog(state);
-  const clickEquivalentLog = log10Safe(getCloudTouchAmount(state) / 2);
-  return !Number.isFinite(passiveLog) || passiveLog < clickEquivalentLog;
+  const clickEquivalentLog = log10Safe(getCloudTouchAmount(state) / getClickCooldownSeconds(state));
+  if (!Number.isFinite(passiveLog)) {
+    return state.totalMonsoonCycles <= 0 && state.upgrades.cloudTouch < 2;
+  }
+
+  if (passiveLog >= clickEquivalentLog - 0.05) {
+    return false;
+  }
+
+  if (isUpgradeVisible(state, "weatherAmplifier")) {
+    const cloudTouchWait = estimateWaitSecondsForCost(state, getUpgradeCost(state, getUpgrade("cloudTouch")));
+    const weatherAmplifierWait = estimateWaitSecondsForCost(state, getUpgradeCost(state, getUpgrade("weatherAmplifier")));
+    const weatherAmplifierGain = getRunUpgradeRateGainLog(state, "weatherAmplifier");
+    const cloudTouchGain = getRunUpgradeRateGainLog(state, "cloudTouch");
+    if (weatherAmplifierWait <= Math.max(1, cloudTouchWait) * 1.5 && weatherAmplifierGain >= cloudTouchGain + 0.12) {
+      return false;
+    }
+  }
+
+  return passiveLog < clickEquivalentLog - 0.1;
 }
 
 function shouldPatientWaitForRunUpgrade(state) {
+  if (canClaimRainRank(state)) {
+    return false;
+  }
+
   if (hasAffordableFirstLevelInfrastructure(state)) {
     return null;
   }
 
-  const candidates = [
-    { id: "weatherAmplifier", maxWaitSeconds: state.totalMonsoonCycles <= 0 ? 60 : 30, minAdvantageLog: 0.18, maxCurrentLevel: state.totalMonsoonCycles <= 0 ? 5 : 3 },
-    { id: "windEye", maxWaitSeconds: 75, minAdvantageLog: 0.08, maxCurrentLevel: 1 },
-    { id: "heavyRain", maxWaitSeconds: state.rainRanks >= 8 ? 90 : 45, minAdvantageLog: 0.12, maxCurrentLevel: 2 },
-    { id: "monsoonPull", maxWaitSeconds: 90, minAdvantageLog: 0.35, maxCurrentLevel: 3 },
-  ];
+  if (shouldWaitForPatientMultiplierRollout(state, "weatherAmplifier", 90, 0.18)) {
+    return true;
+  }
 
-  for (const candidate of candidates) {
-    if (state.upgrades[candidate.id] >= candidate.maxCurrentLevel) {
-      continue;
-    }
+  if (shouldWaitForPatientMultiplierRollout(state, "heavyRain", state.rainRanks >= 8 ? 90 : 45, 0.12)) {
+    return true;
+  }
 
-    if (!shouldConsiderWaitingForUpgrade(state, candidate.id)) {
-      continue;
-    }
+  if (shouldWaitForPatientMultiplierRollout(state, "windEye", 75, 0.08, { onlyFirstLevel: true })) {
+    return true;
+  }
 
-    const upgrade = getUpgrade(candidate.id);
-    const waitSeconds = estimateWaitSecondsForCost(state, getUpgradeCost(state, upgrade));
-    if (waitSeconds > candidate.maxWaitSeconds) {
-      continue;
-    }
-
-    const targetGain = getRunUpgradeRateGainLog(state, candidate.id);
-    const bestAffordableGain = getBestAffordableRunUpgradeGainLog(state, candidate.id);
-    if (targetGain >= bestAffordableGain + candidate.minAdvantageLog) {
-      return { upgradeId: candidate.id, waitSeconds };
-    }
+  if (shouldWaitForPatientMonsoonPull(state)) {
+    return true;
   }
 
   return null;
+}
+
+function shouldWaitForPatientMultiplierRollout(state, upgradeId, maxWaitSeconds, minAdvantageLog, options = {}) {
+  if (options.onlyFirstLevel && state.upgrades[upgradeId] > 0) {
+    return false;
+  }
+
+  if (!shouldConsiderWaitingForUpgrade(state, upgradeId)) {
+    return false;
+  }
+
+  const upgrade = getUpgrade(upgradeId);
+  const waitSeconds = estimateWaitSecondsForCost(state, getUpgradeCost(state, upgrade));
+  if (waitSeconds <= 0 || waitSeconds > maxWaitSeconds) {
+    return false;
+  }
+
+  const rolloutAdvantage = getWaitThenBuySameWindowAdvantageLog(state, upgradeId, waitSeconds);
+  if (rolloutAdvantage < minAdvantageLog) {
+    return false;
+  }
+
+  const targetGain = getRunUpgradeRateGainLog(state, upgradeId);
+  const bestAffordableGain = getBestAffordableRunUpgradeGainLog(state, upgradeId);
+  return targetGain >= bestAffordableGain - 0.05;
+}
+
+function shouldWaitForPatientMonsoonPull(state) {
+  if (!shouldConsiderWaitingForUpgrade(state, "monsoonPull")) {
+    return false;
+  }
+
+  const waitSeconds = estimateWaitSecondsForCost(state, getUpgradeCost(state, getUpgrade("monsoonPull")));
+  if (waitSeconds <= 60) {
+    return true;
+  }
+
+  if (waitSeconds <= 120) {
+    return !canAffordableMultiplierCompressTargetWait(state, "monsoonPull", 60);
+  }
+
+  return false;
+}
+
+function canAffordableMultiplierCompressTargetWait(state, targetUpgradeId, maxWaitAfterPurchase) {
+  for (const upgradeId of ["weatherAmplifier", "heavyRain"]) {
+    if (!canBuyRunUpgrade(state, upgradeId)) {
+      continue;
+    }
+
+    const projected = cloneState(state);
+    projected.resources = payCost(projected.resources, getUpgradeCost(projected, getUpgrade(upgradeId)));
+    projected.upgrades[upgradeId] += 1;
+    const waitAfterPurchase = estimateWaitSecondsForCost(projected, getUpgradeCost(projected, getUpgrade(targetUpgradeId)));
+    if (waitAfterPurchase <= maxWaitAfterPurchase) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function getWaitThenBuySameWindowAdvantageLog(state, upgradeId, waitSeconds) {
+  const currentResourceLog = log10Safe(state.resources.weather);
+  const currentGainLog = calculateEffectiveWeatherGainLog(state);
+  const waitDurationLog = log10Safe(Math.max(1, waitSeconds));
+  const noBuySameWindowLog = logSumExp10(currentResourceLog, currentGainLog + waitDurationLog);
+
+  const projected = cloneState(state);
+  projected.upgrades[upgradeId] += 1;
+  const afterBuyGainLog = calculateEffectiveWeatherGainLog(projected);
+  const afterBuySameWindowLog = afterBuyGainLog + waitDurationLog;
+
+  return afterBuySameWindowLog - noBuySameWindowLog;
 }
 
 function shouldConsiderWaitingForUpgrade(state, upgradeId) {
@@ -1113,8 +1233,8 @@ function printResult(result, gates) {
       continue;
     }
     console.log(
-      `    - ${formatTime(snapshot.second)} ${snapshot.label}: weather 1e${formatLog(snapshot.weatherExp)}, `
-      + `rate 1e${formatLog(snapshot.rateLog)}/s, best 1e${formatLog(snapshot.bestWeatherExp)}, `
+      `    - ${formatTime(snapshot.second)} ${snapshot.label}: weather ${formatLogValue(snapshot.weatherExp)}, `
+      + `rate ${formatLogValue(snapshot.rateLog)}/s, best ${formatLogValue(snapshot.bestWeatherExp)}, `
       + `layers core +${snapshot.layerBonus.cloudCore.toFixed(1)} / pressure +${snapshot.layerBonus.pressure.toFixed(1)} / `
       + `storm +${snapshot.layerBonus.storm.toFixed(1)} / climate +${snapshot.layerBonus.climate.toFixed(1)} / sky +${snapshot.layerBonus.skyHeart.toFixed(1)}`,
     );
@@ -1132,7 +1252,7 @@ function printResult(result, gates) {
     }
     console.log(
       `    - ${formatTime(purchase.second)} ${purchase.layer}.${purchase.id} Lv.${purchase.level} | `
-      + `rate 1e${formatLog(purchase.beforeRateLog)} -> 1e${formatLog(purchase.afterRateLog)} | `
+      + `rate ${formatLogValue(purchase.beforeRateLog)} -> ${formatLogValue(purchase.afterRateLog)} | `
       + `payback ${formatPayback(purchase.payback)}`,
     );
   }
@@ -1181,6 +1301,7 @@ function evaluateBalanceGates(result) {
 
   if (result.name === "new-player-visible") {
     pushLatestGate(gates, "warning", "new player reaches climate", result.milestoneAt.firstClimateRewrite, 4 * 60 * 60);
+    pushEarliestGate(gates, "warning", "new player ending too fast", result.skyHeartAt, 120 * 60);
     pushQuietGate(gates, "warning", "new player quiet time", result.maxQuietSeconds, 12 * 60);
   }
 
@@ -1372,6 +1493,43 @@ function formatLog(value) {
   }
 
   return value.toFixed(2);
+}
+
+function formatLogValue(value) {
+  if (!Number.isFinite(value)) {
+    return "0";
+  }
+
+  const exponent = Math.floor(value);
+  let mantissa = 10 ** (value - exponent);
+  let normalizedExponent = exponent;
+
+  if (mantissa >= 9.95) {
+    mantissa = 1;
+    normalizedExponent += 1;
+  }
+
+  if (normalizedExponent >= -2 && normalizedExponent <= 5) {
+    return formatSmallScientificValue(mantissa * 10 ** normalizedExponent);
+  }
+
+  return `${mantissa.toFixed(1)}e${normalizedExponent}`;
+}
+
+function formatSmallScientificValue(value) {
+  if (value >= 1000) {
+    return Math.round(value).toString();
+  }
+
+  if (value >= 100) {
+    return value.toFixed(1).replace(/\.0$/, "");
+  }
+
+  if (value >= 10) {
+    return value.toFixed(2).replace(/\.?0+$/, "");
+  }
+
+  return value.toFixed(3).replace(/\.?0+$/, "");
 }
 
 function formatPayback(value) {

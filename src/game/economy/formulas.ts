@@ -270,8 +270,8 @@ export function getClimateLawExponentBonus(state: WeatherReactorState) {
   const activeBonus = state.activeClimateLaws.includes("backflow") ? 1 : 0;
   return Math.min(
     MAX_CLIMATE_EXPONENT_BONUS,
-    4 * state.totalClimateThreads
-      + 4 * state.upgrades.climateEcho
+    3 * state.totalClimateThreads
+      + 3 * state.upgrades.climateEcho
       + 3 * state.climateLaws.condensationLaw
       + 4 * state.climateLaws.deepRootLaw
       + 4 * state.climateLaws.stormWeaving

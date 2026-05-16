@@ -288,6 +288,11 @@ export function getCloudCoreGain(state: WeatherReactorState) {
     return 0;
   }
 
+  if (state.totalStormFronts <= 0) {
+    const preStormCoreSteps = [4, 4, 4, 5];
+    return preStormCoreSteps[Math.min(state.monsoonCyclesInFront, preStormCoreSteps.length - 1)] ?? 4;
+  }
+
   const targetExp = getCurrentMilestoneTargetExp(state);
   const base = 4;
   const globalMonsoonBonus = Math.floor(state.totalMonsoonCycles / 3);
@@ -429,11 +434,11 @@ export function getClimateThreadGain(state: WeatherReactorState) {
   }
 
   const targetExp = getCurrentMilestoneTargetExp(state);
-  const base = state.totalClimateRewrites === 0 ? 5 : 7;
+  const base = state.totalClimateRewrites === 0 ? 4 : 5;
   const stormBonus = Math.floor(state.stormFrontsInClimate / 2);
-  const surplus = Math.floor(Math.max(0, log10Safe(state.resources.weather) - targetExp) / 25);
+  const surplus = Math.floor(Math.max(0, log10Safe(state.resources.weather) - targetExp) / 35);
 
-  return Math.min(16, Math.max(5, base + stormBonus + surplus));
+  return Math.min(10, Math.max(4, base + stormBonus + surplus));
 }
 
 /**

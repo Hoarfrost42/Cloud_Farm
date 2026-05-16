@@ -24,6 +24,8 @@ https://github.com/Hoarfrost42/Cloud_Farm
 
 ```text
 docs/weather-reactor-v13-implementation-summary.md
+docs/weather-reactor-external-discussion-brief.md
+docs/weather-reactor-simulation-strategy-notes.md
 docs/current-code-map.md
 docs/README.md
 ```
@@ -154,13 +156,19 @@ docs/weather-reactor-v13-implementation-summary.md
 
 ## 当前调参状态
 
-最新模拟显示 v13 全流程可以跑到 `1e308`，但曲线仍偏快，尤其季风后压缩较强。下一轮优先处理：
+最新模拟显示 v13 全流程可以跑到 `1e308`，但曲线仍偏快，尤其第一风暴后的风暴图谱顺序会产生隐藏最优解风险。当前诊断基线已把所有策略的风暴顺序统一为：
 
-1. 中后期本轮升级无限堆叠成本。
-2. 气压收益过高的问题。
-3. 风暴胞、气候法则和天空心脏脉冲的指数贡献。
-4. 第一季风后 5 分钟内旧流程是否被明显压缩。
-5. 第一风暴前线前是否有明确进入新循环的体感。
+```text
+frontMemory -> thunderUpdraft -> rainOverload -> stormBatch -> windEyeRelic -> frontScar -> stormPrism
+```
+
+下一轮优先处理：
+
+1. 第一风暴后的风暴主干 redesign，避免研究树式隐藏最优解。
+2. 以所有玩家都完成风暴主干为共同基线，重新拉长第二风暴后到 `1e308` 的曲线到约 2-3 小时。
+3. 检查 `thunderUpdraft`、风暴胞指数、气候法则指数和天空心脏脉冲的贡献。
+4. 增强模拟器，让缺少人工试玩时也能判断数值合理性。
+5. UI 降噪，把非当前环节的公式和图谱信息移入切换页、弹窗或详情视图。
 
 ## 开发原则
 
