@@ -136,7 +136,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     name: "季风牵引",
     description: "把第 10 雨阶后的被动增长牵引到季风爆发。",
     baseCost: { weather: 10000000000000000 },
-    costGrowth: 100,
+    costGrowth: 300,
     costSequence: { weather: [10000000000000000, 300000000000000000, 10000000000000000000] },
   },
   {
@@ -179,7 +179,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     name: "气压计校准",
     description: "后续季风获得更多气压。",
     baseCost: { weather: 1e30 },
-    costGrowth: 1000,
+    costGrowth: 10000,
     costSequence: { weather: [1e30, 1e45, 1e70] },
   },
   {
@@ -187,7 +187,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     name: "前线积雨",
     description: "当前前线获得额外气压指数奖励。",
     baseCost: { weather: 1e35 },
-    costGrowth: 1000,
+    costGrowth: 10000,
     costSequence: { weather: [1e35, 1e60, 1e90] },
   },
   {
@@ -195,7 +195,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     name: "雷云回流",
     description: "生产者公共乘区获得数量级加成。",
     baseCost: { weather: 1e50 },
-    costGrowth: 1000,
+    costGrowth: 10000,
     costSequence: { weather: [1e50, 1e80, 1e120] },
   },
   {
@@ -203,7 +203,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     name: "过载雨阶",
     description: "提高最大雨阶并降低雨阶需求指数。",
     baseCost: { weather: 1e70 },
-    costGrowth: 1000,
+    costGrowth: 10000,
     costSequence: { weather: [1e70, 1e110, 1e150] },
   },
   {
@@ -211,7 +211,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     name: "气候回声",
     description: "气候指数奖励增加。",
     baseCost: { weather: 1e165 },
-    costGrowth: 1000,
+    costGrowth: 10000,
     costSequence: { weather: [1e165, 1e190, 1e220] },
   },
   {
@@ -219,7 +219,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     name: "深层水汽",
     description: "雨滴 log 系数提高。",
     baseCost: { weather: 1e175 },
-    costGrowth: 1000,
+    costGrowth: 10000,
     costSequence: { weather: [1e175, 1e205, 1e235] },
   },
   {
@@ -227,7 +227,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     name: "高空环流",
     description: "降低后续季风目标指数。",
     baseCost: { weather: 1e185 },
-    costGrowth: 1000,
+    costGrowth: 10000,
     costSequence: { weather: [1e185, 1e215, 1e245] },
   },
   {
@@ -235,7 +235,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     name: "天穹预热",
     description: "降低天空心脏脉冲成本指数。",
     baseCost: { weather: 1e210 },
-    costGrowth: 1000,
+    costGrowth: 10000,
     costSequence: { weather: [1e210, 1e240] },
   },
 ];
@@ -569,10 +569,11 @@ export function getPermanentUpgrade(upgradeId: string) {
 export function getUpgradeCost(state: WeatherReactorState, upgrade: UpgradeDefinition | UpgradeId) {
   const resolvedUpgrade = typeof upgrade === "string" ? getUpgrade(upgrade) : upgrade;
   const level = state.upgrades[resolvedUpgrade.id];
+  const costGrowth = getEffectiveCostGrowth(state, resolvedUpgrade);
   const cost: ResourceCost = {};
 
   for (const resourceKey of RESOURCE_KEYS) {
-    const sequencedCost = getSequencedCost(resolvedUpgrade, resourceKey, level);
+    const sequencedCost = getSequencedCost(resolvedUpgrade, resourceKey, level, costGrowth);
     if (sequencedCost > 0) {
       cost[resourceKey] = sequencedCost;
       continue;
@@ -581,7 +582,7 @@ export function getUpgradeCost(state: WeatherReactorState, upgrade: UpgradeDefin
     const baseValue = resolvedUpgrade.baseCost[resourceKey] ?? 0;
     if (baseValue > 0) {
       const costLevel = resolvedUpgrade.costExponent ? Math.pow(level, resolvedUpgrade.costExponent) : level;
-      const costMultiplier = Math.pow(resolvedUpgrade.costGrowth, costLevel);
+      const costMultiplier = Math.pow(costGrowth, costLevel);
       cost[resourceKey] = baseValue * costMultiplier;
     }
   }
@@ -706,7 +707,7 @@ function canAfford(resources: WeatherReactorState["resources"], cost: ResourceCo
   return RESOURCE_KEYS.every((resourceKey) => resources[resourceKey] >= (cost[resourceKey] ?? 0));
 }
 
-function getSequencedCost(upgrade: UpgradeDefinition, resourceKey: ResourceKey, level: number) {
+function getSequencedCost(upgrade: UpgradeDefinition, resourceKey: ResourceKey, level: number, costGrowth: number) {
   const sequence = upgrade.costSequence?.[resourceKey];
   if (!sequence?.length) {
     return 0;
@@ -716,5 +717,21 @@ function getSequencedCost(upgrade: UpgradeDefinition, resourceKey: ResourceKey, 
     return sequence[level] ?? 0;
   }
 
-  return sequence[sequence.length - 1] * Math.pow(upgrade.costGrowth, level - sequence.length + 1);
+  return sequence[sequence.length - 1] * Math.pow(costGrowth, level - sequence.length + 1);
+}
+
+function getEffectiveCostGrowth(state: WeatherReactorState, upgrade: UpgradeDefinition) {
+  if (upgrade.id === "weatherAmplifier" && state.totalStormFronts > 0) {
+    return 500;
+  }
+
+  if (upgrade.id === "monsoonPull" && state.totalStormFronts > 0) {
+    return 400000;
+  }
+
+  if (upgrade.id === "heavyRain" && state.totalStormFronts > 0) {
+    return 500;
+  }
+
+  return upgrade.costGrowth;
 }

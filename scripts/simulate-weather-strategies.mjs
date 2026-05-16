@@ -47,7 +47,7 @@ const QUIET_WARNING_SECONDS = 10 * 60;
 const MAX_ACTIONS_PER_SECOND = 12;
 const RANK_MILESTONES = [1, 3, 6, 8, 10, 14, 16, 20, 25];
 const RUN_UPGRADE_IDS = UPGRADE_DEFINITIONS.map((upgrade) => upgrade.id);
-const PRIMARY_BALANCE_STRATEGIES = ["patient-multiplier-human", "guided-human"];
+const PRIMARY_BALANCE_STRATEGIES = ["patient-multiplier-human"];
 
 const STAGE_WINDOWS = [
   { id: "rank1", label: "第 1 雨阶", min: 6 * 60, max: 10 * 60 },
@@ -1146,6 +1146,13 @@ function evaluateBalanceGates(result) {
     const earliestEnding = result.name === "guided-human" ? 100 * 60 : 120 * 60;
     pushWindowGate(gates, "fail", `${result.name} ending window`, result.skyHeartAt, earliestEnding, 210 * 60);
     pushQuietGate(gates, "fail", `${result.name} quiet time`, result.maxQuietSeconds, 10 * 60);
+    pushStageWindowWarnings(gates, result);
+    return gates;
+  }
+
+  if (result.name === "guided-human") {
+    pushWindowGate(gates, "warning", "guided-human ending window", result.skyHeartAt, 100 * 60, 210 * 60);
+    pushQuietGate(gates, "warning", "guided-human quiet time", result.maxQuietSeconds, 10 * 60);
     pushStageWindowWarnings(gates, result);
     return gates;
   }

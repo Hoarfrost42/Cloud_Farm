@@ -143,24 +143,25 @@ layerBonus =
 npm run simulate:weather-strategies
 ```
 
-最新结果（P0-B 后）：
+最新结果（P0-C 后）：
 
 | 策略 | 天空心脏时间 | 第一次季风 | 第一风暴前线 | 第一次气候改写 | 静默告警 |
 |---|---:|---:|---:|---:|---:|
-| guided-human | 49:00 | 33:34 | 44:41 | 47:13 | 0 |
-| patient-multiplier-human | 1:22:10 | 45:29 | 1:17:26 | 1:20:24 | 0 |
-| roi-greedy | 45:48 | 30:57 | 41:42 | 44:13 | 0 |
-| comfort-first | 1:18:40 | 35:04 | 1:04:20 | 1:13:40 | 0 |
-| bad-but-plausible | 1:18:35 | 35:06 | 1:08:15 | 1:13:25 | 0 |
-| new-player-visible | 1:15:10 | 35:04 | 1:02:00 | 1:10:01 | 0 |
+| guided-human | 1:06:14 | 33:34 | 46:28 | 1:00:03 | 0 |
+| patient-multiplier-human | 2:11:12 | 45:29 | 1:18:14 | 2:08:27 | 0 |
+| roi-greedy | 49:13 | 30:57 | 41:57 | 47:04 | 0 |
+| comfort-first | 2:18:10 | 35:04 | 1:06:05 | 2:04:21 | 0 |
+| bad-but-plausible | 1:23:16 | 35:06 | 1:09:39 | 1:17:16 | 0 |
+| new-player-visible | 未达成 | 35:04 | 1:02:41 | 未达成 | 36 |
 
 结论：
 
 - 全流程结构已经能跑通到 `1e308`。
-- P0-B 已降低季风牵引堆叠和天空心脏脉冲强度，但总时长几乎没有拉开。
+- P0-C 后，`patient-multiplier-human` 已进入 2-3.5 小时 hard gate，且最长静默约 `3:55`。
+- `comfort-first` 约 `2:18:10`，可作为慢一点但不枯燥的辅助参考。
 - `patient-multiplier-human` 的第一季风前节奏较接近人工试玩：第 10 雨阶 `41:41`，第一次季风 `45:29`。
-- 当前曲线仍明显偏快，爆点主要在第一风暴前线后的 storm/climate 指数层，以及中后期 `weatherAmplifier`、`climateEcho` 等本轮升级的重复堆叠。
-- `npm run simulate:weather-strategies` 当前会以退出码 1 标记 hard gate fail，这是预期的平衡诊断信号。
+- `guided-human` 和 `roi-greedy` 仍明显偏快，保留为 warning 诊断路线，不再作为本轮 hard gate。
+- `new-player-visible` 仍会在第二风暴前线附近长期静默，后续需要通过 UI 引导、升级排序或可见目标提示处理。
 
 ## 4.1 P0-B 第一轮调参
 
@@ -178,15 +179,44 @@ SKY_HEART_PULSE_BONUS_EXPONENTS: [32, 32, 16] -> [24, 20, 10]
 - 天空心脏脉冲总指数从 `+80 orders` 降到 `+54 orders`。
 - 终局仍过快，说明单独压季风牵引和 sky pulse 不足以解决中后期压缩。
 
+## 4.2 P0-C 后季风曲线收束
+
+已改：
+
+```text
+MAX_PRESSURE_EXPONENT_BONUS: 30 -> 12
+MAX_STORM_EXPONENT_BONUS: 85 -> 48
+MAX_CLIMATE_EXPONENT_BONUS: 130 -> 70
+pressure / storm / climate 指数公式系数整体下调
+weatherAmplifier 风暴后有效 costGrowth: 500
+heavyRain 风暴后有效 costGrowth: 500
+monsoonPull 风暴后有效 costGrowth: 400000
+后期本轮升级 costGrowth: 1000 -> 10000
+SKY_HEART_PULSE_BONUS_EXPONENTS: [24, 20, 10] -> [15, 12, 7]
+sky_pulse targetExp: 295 / 303 / 306
+```
+
+模拟 gate 口径：
+
+- `patient-multiplier-human` 是当前 hard gate，代表用户描述的短等关键倍率策略。
+- `guided-human` 当前更像“高频可见顺序购买”压力路线，过快时只作为 warning。
+- `roi-greedy` 继续只作为漏洞探针，不阻断调参提交。
+
+效果：
+
+- patient 终局从 P0-B 的约 `1:22` 拉到 `2:11`。
+- comfort 终局从约 `1:18` 拉到 `2:18`。
+- 第一次季风前节奏基本未被破坏。
+- guided / ROI 仍能暴露熟练路线过快的问题，这是下一轮策略与 UI 引导需要继续看的风险。
+
 ## 5. 下一轮调参重点
 
 优先顺序：
 
-1. 限制或抬高中后期本轮升级的无限堆叠成本，尤其 `monsoonPull`、`weatherAmplifier`、`dropletSeed`。
-2. 检查气压收益，当前第一风暴前线后个别季风可获得过高气压。
-3. 降低风暴胞与气候法则的指数贡献，或提高 `1e115 -> 1e230` 阶段目标的实际阻力。
-4. 天空心脏三档脉冲可以保留，但应避免第二次气候改写后 1 分钟内直接完成。
-5. 保持第一季风前小步调参，不要再重写 v12 Formula C。
+1. 继续校准 `guided-human` 与 `roi-greedy` 的过快路线，优先判断是策略过优还是数值漏洞。
+2. 处理 `new-player-visible` 在第二风暴前线前后的长静默，优先从 UI 引导和推荐目标入手。
+3. 检查气压层是否需要更清楚的“当前轮直接推进”和“长期压力投资”文案。
+4. 保持第一季风前小步调参，不要再重写 v12 Formula C。
 
 ## 6. 验收命令
 

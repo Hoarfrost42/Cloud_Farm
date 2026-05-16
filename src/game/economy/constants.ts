@@ -35,9 +35,9 @@ export const SKY_HEART_CORE_TARGET = 14;
 export const SKY_HEART_ENDING_EXPONENT = 308;
 export const MAX_RAIN_COMPRESSION_EXPONENT = 18;
 export const MAX_CLOUD_CORE_EXPONENT_BONUS = 24;
-export const MAX_PRESSURE_EXPONENT_BONUS = 30;
-export const MAX_STORM_EXPONENT_BONUS = 85;
-export const MAX_CLIMATE_EXPONENT_BONUS = 130;
+export const MAX_PRESSURE_EXPONENT_BONUS = 12;
+export const MAX_STORM_EXPONENT_BONUS = 48;
+export const MAX_CLIMATE_EXPONENT_BONUS = 70;
 
 export const RESOURCE_KEYS: ResourceKey[] = ["weather", "droplets", "roots", "clouds"];
 
@@ -121,31 +121,31 @@ export const MAINLINE_MILESTONES: MainlineMilestone[] = [
     requiredRainRanks: 14,
     requiredMonsoonsInFront: 4,
   },
-  { id: "monsoon_5", kind: "monsoon", title: "第五次季风", targetExp: 85, requiredRainRanks: 14 },
-  { id: "monsoon_6", kind: "monsoon", title: "第六次季风", targetExp: 100, requiredRainRanks: 15 },
+  { id: "monsoon_5", kind: "monsoon", title: "第五次季风", targetExp: 90, requiredRainRanks: 14 },
+  { id: "monsoon_6", kind: "monsoon", title: "第六次季风", targetExp: 120, requiredRainRanks: 15 },
   {
     id: "storm_front_2",
     kind: "stormFront",
     title: "第二风暴前线",
-    targetExp: 115,
+    targetExp: 145,
     requiredRainRanks: 16,
     requiredMonsoonsInFront: 2,
   },
-  { id: "monsoon_7", kind: "monsoon", title: "第七次季风", targetExp: 130, requiredRainRanks: 16 },
-  { id: "monsoon_8", kind: "monsoon", title: "第八次季风", targetExp: 145, requiredRainRanks: 17 },
+  { id: "monsoon_7", kind: "monsoon", title: "第七次季风", targetExp: 170, requiredRainRanks: 16 },
+  { id: "monsoon_8", kind: "monsoon", title: "第八次季风", targetExp: 195, requiredRainRanks: 17 },
   {
     id: "climate_rewrite_1",
     kind: "climateRewrite",
     title: "第一次气候改写",
-    targetExp: 160,
+    targetExp: 220,
     requiredStormFronts: 2,
   },
-  { id: "monsoon_9", kind: "monsoon", title: "第九次季风", targetExp: 180, requiredRainRanks: 18 },
+  { id: "monsoon_9", kind: "monsoon", title: "第九次季风", targetExp: 240, requiredRainRanks: 18 },
   {
     id: "storm_front_3",
     kind: "stormFront",
     title: "第三风暴前线",
-    targetExp: 205,
+    targetExp: 265,
     requiredRainRanks: 20,
     requiredMonsoonsInFront: 1,
   },
@@ -153,13 +153,13 @@ export const MAINLINE_MILESTONES: MainlineMilestone[] = [
     id: "climate_rewrite_2",
     kind: "climateRewrite",
     title: "第二次气候改写",
-    targetExp: 230,
+    targetExp: 276,
     requiredStormFronts: 3,
   },
-  { id: "sky_pulse_1", kind: "skyPulse", title: "天空心脏脉冲 I", targetExp: 250 },
-  { id: "sky_pulse_2", kind: "skyPulse", title: "天空心脏脉冲 II", targetExp: 275 },
-  { id: "sky_pulse_3", kind: "skyPulse", title: "天空心脏脉冲 III", targetExp: 300 },
+  { id: "sky_pulse_1", kind: "skyPulse", title: "天空心脏脉冲 I", targetExp: 295 },
+  { id: "sky_pulse_2", kind: "skyPulse", title: "天空心脏脉冲 II", targetExp: 303 },
+  { id: "sky_pulse_3", kind: "skyPulse", title: "天空心脏脉冲 III", targetExp: 306 },
   { id: "sky_heart", kind: "ending", title: "点燃天空心脏", targetExp: 308 },
 ];
 
-export const SKY_HEART_PULSE_BONUS_EXPONENTS = [24, 20, 10];
+export const SKY_HEART_PULSE_BONUS_EXPONENTS = [15, 12, 7];

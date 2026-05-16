@@ -242,10 +242,10 @@ export function getCloudCoreExponentBonus(state: WeatherReactorState) {
 export function getPressureExponentBonus(state: WeatherReactorState) {
   return Math.min(
     MAX_PRESSURE_EXPONENT_BONUS,
-    1.5 * state.pressureUpgrades.updraft
-      + 2 * state.pressureUpgrades.eyeWall
-      + 2 * state.upgrades.frontRain
-      + 0.25 * state.totalPressureSpentThisFront,
+    1.2 * state.pressureUpgrades.updraft
+      + 1.5 * state.pressureUpgrades.eyeWall
+      + 1.4 * state.upgrades.frontRain
+      + 0.12 * state.totalPressureSpentThisFront,
   );
 }
 
@@ -253,13 +253,13 @@ export function getPressureExponentBonus(state: WeatherReactorState) {
  * Returns the exponent bonus from storm-front meta progression.
  */
 export function getStormCellExponentBonus(state: WeatherReactorState) {
-  const stormWeavingCapBonus = state.climateLaws.stormWeaving > 0 ? 25 : 0;
+  const stormWeavingCapBonus = state.climateLaws.stormWeaving > 0 ? 15 : 0;
   return Math.min(
     MAX_STORM_EXPONENT_BONUS + stormWeavingCapBonus,
-    2.2 * state.totalStormCells
-      + 3 * state.stormUpgrades.thunderUpdraft
-      + 5 * state.stormUpgrades.stormPrism
-      + Math.min(25, 0.08 * state.totalStormCells * state.totalCloudCores),
+    1.6 * state.totalStormCells
+      + 2.2 * state.stormUpgrades.thunderUpdraft
+      + 3.5 * state.stormUpgrades.stormPrism
+      + Math.min(12, 0.035 * state.totalStormCells * state.totalCloudCores),
   );
 }
 
@@ -270,11 +270,11 @@ export function getClimateLawExponentBonus(state: WeatherReactorState) {
   const activeBonus = state.activeClimateLaws.includes("backflow") ? 1 : 0;
   return Math.min(
     MAX_CLIMATE_EXPONENT_BONUS,
-    6 * state.totalClimateThreads
-      + 6 * state.upgrades.climateEcho
-      + 4 * state.climateLaws.condensationLaw
-      + 5 * state.climateLaws.deepRootLaw
-      + 6 * state.climateLaws.stormWeaving
+    4 * state.totalClimateThreads
+      + 4 * state.upgrades.climateEcho
+      + 3 * state.climateLaws.condensationLaw
+      + 4 * state.climateLaws.deepRootLaw
+      + 4 * state.climateLaws.stormWeaving
       + (state.climateLaws.cloudCoreRefraction > 0 ? 0.08 * state.totalCloudCores : 0)
       + activeBonus,
   );
