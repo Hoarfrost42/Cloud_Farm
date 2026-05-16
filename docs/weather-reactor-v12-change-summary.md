@@ -634,7 +634,7 @@ singleTickDelta <= 1s
 
 5. 仍使用 JavaScript `number`。
    - 当前数值范围尚可。
-   - 如果继续做长线，建议引入 Decimal 或封装数值层。
+   - v13 已开始准备 `logNumbers.ts`，但当前 v12 tick 尚未接入 log-safe 结算。
 
 ## 15. 下一轮建议
 

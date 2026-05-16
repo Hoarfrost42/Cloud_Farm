@@ -21,6 +21,7 @@ src/game/economy/
   types.ts
   state.ts
   formulas.ts
+  logNumbers.ts
   upgrades.ts
   resets.ts
   tick.ts
@@ -99,4 +100,16 @@ archive/legacy-v0-pixi-phaser/docs/
 1. 改进模拟器策略与日志。
 2. 修正第一次季风完整试玩中的真实问题。
 3. 对 v12 第一季风前做小步调优。
-4. 开始 v13 的 log-safe 数值层与主线里程碑表。
+4. 接入 v13 的 log-safe tick 与 `bestWeatherExp`。
+5. 添加 v13 主线里程碑表。
+
+## 5. v13 开发状态
+
+已添加 `src/game/economy/logNumbers.ts`，提供 `log10Safe`、`pow10Clamped`、`logSumExp10` 等工具。
+
+当前状态：
+
+- 工具已导出；
+- 尚未接入 `runTick()`；
+- 尚未添加 `bestWeatherExp`；
+- 尚未改变 v12 实际数值行为。
