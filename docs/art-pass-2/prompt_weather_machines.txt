@@ -1,0 +1,74 @@
+Generate a pixel-art game asset board / sprite sheet for Cloud Island, a cozy pseudo-2.5D sky weather idle game.
+
+Asset group: existing v0.1 weather machines only.
+
+Purpose:
+- These are game assets to be split into sprites later.
+- Not a concept scene.
+- Not a poster.
+- Not a full gameplay screenshot.
+
+Required assets on one sheet:
+1. rain collector / small water tank
+2. windmill base without blades
+3. separate windmill blades sprite
+4. sun prism device
+
+Visual style:
+- high-quality pixel art pseudo-2.5D
+- fixed 45-degree elevated angle
+- crisp pixel edges, readable silhouettes, consistent pixel density
+- bright, soft, rounded, clean, asset-readable
+- sky-weather palette: cloud white, clear water blue, soft gold, warm wood, soft stone, fresh grass accents
+- cozy but not childish
+
+Rain collector requirements:
+- reads clearly as a water collector or small tank
+- visible water level
+- compact footprint
+- not a house
+- not a factory
+
+Windmill requirements:
+- base and blades are clearly separable
+- windmill base should be a simple weather device, not a house or tall building
+- blades should be centered and easy to rotate in Pixi
+- compact footprint
+
+Sun prism requirements:
+- small prism device on a base
+- readable crystal / prism shape
+- subtle soft gold light accents
+- not a magical tower
+- compact footprint
+
+Sheet requirements:
+- every object separated with clear padding
+- consistent scale across machines
+- consistent lighting and perspective
+- no object overlap
+
+Background:
+- use a perfectly flat solid chroma-key magenta background #ff00ff
+- no shadows cast onto the background
+- no gradients
+- no texture
+- no scene sky
+- no island background
+
+Avoid:
+- houses
+- shops
+- characters
+- animals
+- extra machines
+- extra resources
+- UI
+- text
+- labels
+- watermark
+- logo
+- full gameplay scene
+- painterly HD illustration
+- smooth vector style
+- realistic rendering

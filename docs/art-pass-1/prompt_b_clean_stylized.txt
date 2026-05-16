@@ -1,0 +1,33 @@
+Use the attached current demo screenshot only as a layout reference: left playfield, right UI panel about 20-25% width, compact floating island in the playfield, sky background, no final asset replacement.
+
+Create one pseudo-2.5D game screen direction image for Cloud Island, a light incremental idle browser game about growing weather.
+
+Direction B: Clean Stylized 2D.
+
+The image should look like an actual playable browser game screen, not a poster and not a marketing illustration. Use a clean high-resolution stylized 2D art style with rounded shapes, soft edges, clear silhouettes, and bright airy colors. The camera is a fixed elevated 45-degree view of a small floating island in a clear sky.
+
+Layout:
+- 16:10 or similar game screenshot composition.
+- Left 75-80% is the game scene.
+- Right 20-25% is a clean empty UI safe area with no text, no icons, no fake UI labels.
+- The floating island is lower-middle in the playfield, large enough to inspect but still compact.
+- Clouds and weather effects occupy the upper scene without covering the UI safe area.
+
+Core existing v0.1 elements only:
+- one compact grassy floating island with visible soil and rounded rock underside
+- exactly 3 small crop plots, arranged as fixed anchors
+- large soft clouds above the island, raining gently
+- one small rain collector / water tank
+- one cute windmill with readable blades
+- one small sun prism device emitting a soft warm beam
+- water droplets, splashes, light beams, wind streaks
+- distant cloud banks and tiny far floating islands as atmospheric background
+
+Art direction:
+clean stylized 2D game art, soft bright sky blue, cloud white, soft gold sunlight, fresh green grass, warm soil, clear water blue, cozy but not childish, rounded and polished, crisp asset-readable forms, light incremental idle game mood.
+
+Important:
+Weather should dominate the composition. The island is a weather ecosystem, not a normal farm.
+Only 3 crop plots. Do not add extra crop rows, barns, houses, fences, characters, animals, roads, shops, enemies, quests, cards, text, UI labels, or logos.
+Do not make it dark, horror, cyberpunk, grotesque, realistic, or heavy painterly.
+Do not show tile grid, free building placement, 3D engine look, or a large map.
