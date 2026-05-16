@@ -3,6 +3,7 @@ import {
   PERMANENT_UPGRADES,
   PRESSURE_UPGRADES,
   STORM_UPGRADES,
+  STORM_TRUNK_UPGRADES,
   UPGRADE_DEFINITIONS,
   applyCloudTouch,
   applyPermanentUpgradeEffects,
@@ -29,6 +30,7 @@ import {
   getStormCellGain,
   getUpgrade,
   getUpgradeCost,
+  hasStormTrunk,
   isRunUpgradeMaxed,
   isUpgradeVisible,
   log10Safe,
@@ -66,6 +68,8 @@ const PROGRESS_MILESTONES = [
   { id: "firstMonsoon", label: "第一次季风", isReached: (state) => state.totalMonsoonCycles >= 1 },
   { id: "secondMonsoon", label: "第二次季风", isReached: (state) => state.totalMonsoonCycles >= 2 },
   { id: "firstStormFront", label: "第一风暴前线", isReached: (state) => state.totalStormFronts >= 1 },
+  { id: "secondStormFront", label: "第二风暴前线", isReached: (state) => state.totalStormFronts >= 2 },
+  { id: "thirdStormFront", label: "第三风暴前线", isReached: (state) => state.totalStormFronts >= 3 },
   { id: "firstClimateRewrite", label: "第一次气候改写", isReached: (state) => state.totalClimateRewrites >= 1 },
   { id: "skyPulse1", label: "天空心脏脉冲 1", isReached: (state) => state.skyHeartPulseLevel >= 1 },
   { id: "skyPulse2", label: "天空心脏脉冲 2", isReached: (state) => state.skyHeartPulseLevel >= 2 },
@@ -74,6 +78,7 @@ const PROGRESS_MILESTONES = [
 ];
 
 const CANONICAL_STORM_ORDER = ["frontMemory", "thunderUpdraft", "rainOverload", "stormBatch", "windEyeRelic", "frontScar", "stormPrism"];
+const MISLED_STORM_ORDER = ["frontMemory", "rainOverload", "stormBatch", "windEyeRelic", "thunderUpdraft", "frontScar", "stormPrism"];
 
 const strategies = [
   {
@@ -217,6 +222,30 @@ const strategies = [
     resetFirst: true,
     resetRainRankBeforeRunUpgrades: true,
   },
+  {
+    name: "misled-storm-player",
+    description: "第一风暴后按旧误导顺序买风暴图谱，用来验证主干自动点亮后不再被顺序坑住。",
+    runOrder: getNewPlayerVisibleRunOrder,
+    permanentOrder: [
+      "drizzleMemory",
+      "dropletEcho",
+      "cloudAutoTouch",
+      "rainRankMastery",
+      "windEyeMemory",
+      "livingSoil",
+      "autoRainRank",
+      "bulkRainRank",
+      "rankCompressionCore",
+      "monsoonLens",
+      "cloudCorePrism",
+      "returningMonsoonCore",
+    ],
+    pressureOrder: ["lowPressure", "updraft", "eyeWall", "frontCompression", "pressureGauge"],
+    stormOrder: MISLED_STORM_ORDER,
+    climateOrder: ["condensationLaw", "deepRootLaw", "returningMonsoon", "stormWeaving", "cloudCoreRefraction", "skyHeartOmen", "climateCodex"],
+    resetFirst: true,
+    resetRainRankBeforeRunUpgrades: true,
+  },
 ];
 
 const results = strategies.map((strategy) => simulateStrategy(strategy));
@@ -336,8 +365,14 @@ function runStrategyAction(state, strategy, second, purchases, events) {
   if (canRunStormFront(state)) {
     const gainedStormCells = getStormCellGain(state);
     const milestone = getCurrentMainlineMilestone(state);
+    const beforeStormCells = state.stormCells;
+    const beforeStormFronts = state.totalStormFronts;
     Object.assign(state, performStormFrontReset(state));
-    events.push({ second, type: "storm", text: `${milestone.title}，+${gainedStormCells} 风暴胞` });
+    const spentOnTrunk = gainedStormCells - (state.stormCells - beforeStormCells);
+    const trunkText = beforeStormFronts === 0 && spentOnTrunk > 0
+      ? `，${spentOnTrunk} 点转入风暴主干`
+      : "";
+    events.push({ second, type: "storm", text: `${milestone.title}，+${gainedStormCells} 风暴胞${trunkText}` });
     return true;
   }
 
@@ -1202,11 +1237,13 @@ function printResult(result, gates) {
     + RANK_MILESTONES.map((rank) => formatTime(result.rankAt[rank])).join(" / "),
   );
   console.log(`  milestones: ${formatMilestoneTimeline(result)}`);
+  console.log(`  stage durations: ${formatStageDurations(result)}`);
   console.log(
     `  totals: monsoon ${state.totalMonsoonCycles}, stormFront ${state.totalStormFronts}, climateRewrite ${state.totalClimateRewrites}, `
     + `cloudCores ${state.cloudCores}/${state.totalCloudCores}, stormCells ${state.stormCells}/${state.totalStormCells}, `
     + `climateThreads ${state.climateThreads}/${state.totalClimateThreads}`,
   );
+  console.log(`  storm trunk: ${formatStormTrunkStatus(state)}`);
   console.log(
     `  bestWeatherExp: ${state.bestWeatherExp.toFixed(2)} | layer orders: cloudCore +${layerBonus.cloudCore.toFixed(1)}, `
     + `pressure +${layerBonus.pressure.toFixed(1)}, storm +${layerBonus.storm.toFixed(1)}, climate +${layerBonus.climate.toFixed(1)}, `
@@ -1226,6 +1263,7 @@ function printResult(result, gates) {
     console.log(`    - ${gate.status.toUpperCase()} ${gate.label}: ${gate.detail}`);
   }
   console.log(`  max levels: ${formatMaxLevels(result.maxLevels)}`);
+  console.log(`  largest rate jumps: ${formatLargestRateJumps(result)}`);
   console.log("  layer snapshots:");
   for (const snapshot of compactList(result.snapshots, 10, 8)) {
     if (snapshot === "...") {
@@ -1303,6 +1341,18 @@ function evaluateBalanceGates(result) {
     pushLatestGate(gates, "warning", "new player reaches climate", result.milestoneAt.firstClimateRewrite, 4 * 60 * 60);
     pushEarliestGate(gates, "warning", "new player ending too fast", result.skyHeartAt, 120 * 60);
     pushQuietGate(gates, "warning", "new player quiet time", result.maxQuietSeconds, 12 * 60);
+  }
+
+  if (result.name === "misled-storm-player") {
+    pushLatestGate(gates, "warning", "misled storm reaches storm2", result.milestoneAt.secondStormFront, 4 * 60 * 60);
+    pushQuietGate(gates, "warning", "misled storm quiet time", result.maxQuietSeconds, 12 * 60);
+    if (!hasStormTrunk(result.state)) {
+      gates.push({
+        status: "warning",
+        label: "misled storm trunk",
+        detail: "风暴主干未完成，说明自动点亮或旧存档补偿失败。",
+      });
+    }
   }
 
   return gates;
@@ -1431,6 +1481,7 @@ function formatMilestoneTimeline(result) {
   const entries = [
     ["monsoon1", result.milestoneAt.firstMonsoon],
     ["storm1", result.milestoneAt.firstStormFront],
+    ["storm2", result.milestoneAt.secondStormFront],
     ["climate1", result.milestoneAt.firstClimateRewrite],
     ["pulse1", result.milestoneAt.skyPulse1],
     ["pulse2", result.milestoneAt.skyPulse2],
@@ -1439,6 +1490,87 @@ function formatMilestoneTimeline(result) {
   ];
 
   return entries.map(([label, second]) => `${label} ${formatTime(second)}`).join(" | ");
+}
+
+function formatStageDurations(result) {
+  const entries = [
+    ["start->monsoon1", null, result.milestoneAt.firstMonsoon],
+    ["monsoon1->storm1", result.milestoneAt.firstMonsoon, result.milestoneAt.firstStormFront],
+    ["storm1->storm2", result.milestoneAt.firstStormFront, result.milestoneAt.secondStormFront],
+    ["storm2->climate1", result.milestoneAt.secondStormFront, result.milestoneAt.firstClimateRewrite],
+    ["climate1->ending", result.milestoneAt.firstClimateRewrite, result.skyHeartAt],
+  ];
+
+  return entries.map(([label, start, end]) => `${label} ${formatDuration(start, end)}`).join(" | ");
+}
+
+function formatDuration(start, end) {
+  if (end === null || end === undefined) {
+    return "never";
+  }
+
+  const startSecond = start ?? 0;
+  if (end < startSecond) {
+    return "n/a";
+  }
+
+  return formatTime(end - startSecond);
+}
+
+function formatStormTrunkStatus(state) {
+  const completed = STORM_TRUNK_UPGRADES.filter((upgrade) => state.stormUpgrades[upgrade.id] >= upgrade.level);
+  return `${completed.length}/${STORM_TRUNK_UPGRADES.length} ${hasStormTrunk(state) ? "complete" : "incomplete"}`;
+}
+
+function formatLargestRateJumps(result) {
+  const jumps = [
+    ...getLargestSnapshotRateJumps(result.snapshots),
+    ...getLargestPurchaseRateJumps(result.purchases),
+  ]
+    .sort((left, right) => right.deltaOrders - left.deltaOrders)
+    .slice(0, 6);
+
+  if (jumps.length <= 0) {
+    return "none";
+  }
+
+  return jumps
+    .map((purchase) => (
+      `${formatTime(purchase.second)} ${purchase.label} +${purchase.deltaOrders.toFixed(1)} orders`
+    ))
+    .join(", ");
+}
+
+function getLargestSnapshotRateJumps(snapshots) {
+  const jumps = [];
+  for (let index = 1; index < snapshots.length; index += 1) {
+    const before = snapshots[index - 1];
+    const after = snapshots[index];
+    const deltaOrders = after.rateLog - before.rateLog;
+    if (!Number.isFinite(deltaOrders) || deltaOrders < 5) {
+      continue;
+    }
+
+    jumps.push({
+      second: after.second,
+      label: `${before.label}->${after.label}`,
+      deltaOrders,
+    });
+  }
+
+  return jumps;
+}
+
+function getLargestPurchaseRateJumps(purchases) {
+  return purchases
+    .map((purchase) => ({
+      second: purchase.second,
+      label: `${purchase.layer}.${purchase.id} Lv.${purchase.level}`,
+      deltaOrders: purchase.afterRateLog - purchase.beforeRateLog,
+    }))
+    .filter((purchase) => Number.isFinite(purchase.deltaOrders) && purchase.deltaOrders >= 5)
+    .sort((left, right) => right.deltaOrders - left.deltaOrders)
+    .slice(0, 6);
 }
 
 function formatMaxLevels(maxLevels) {

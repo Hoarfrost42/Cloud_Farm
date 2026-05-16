@@ -8,6 +8,7 @@ import {
   SKY_HEART_CYCLE_TARGET,
   SKY_HEART_ENDING_EXPONENT,
   SKY_HEART_PULSE_BONUS_EXPONENTS,
+  STORM_TRUNK_UPGRADES,
 } from "./constants.ts";
 import { log10Safe, pow10Clamped } from "./logNumbers.ts";
 import {
@@ -244,12 +245,23 @@ export function canRunMonsoon(state: WeatherReactorState) {
  */
 export function canRunStormFront(state: WeatherReactorState) {
   const milestone = getCurrentMainlineMilestone(state);
+  if (milestone.id === "storm_front_2" && !hasStormTrunk(state)) {
+    return false;
+  }
+
   return (
     milestone.kind === "stormFront"
     && log10Safe(state.resources.weather) >= getCurrentMilestoneTargetExp(state)
     && state.rainRanks >= (milestone.requiredRainRanks ?? 0)
     && state.monsoonCyclesInFront >= (milestone.requiredMonsoonsInFront ?? 0)
   );
+}
+
+/**
+ * Returns whether the mandatory first-storm trunk has been established.
+ */
+export function hasStormTrunk(state: WeatherReactorState) {
+  return STORM_TRUNK_UPGRADES.every((upgrade) => state.stormUpgrades[upgrade.id] >= upgrade.level);
 }
 
 /**
@@ -386,10 +398,34 @@ export function getStormCellGain(state: WeatherReactorState) {
 }
 
 /**
+ * Converts the first storm-front reward into the canonical trunk.
+ */
+function applyFirstStormTrunk(state: WeatherReactorState, gainedStormCells: number) {
+  let stormCells = state.stormCells + gainedStormCells;
+  const stormUpgrades = { ...state.stormUpgrades };
+
+  if (state.totalStormFronts !== 0) {
+    return { stormCells, stormUpgrades };
+  }
+
+  for (const upgrade of STORM_TRUNK_UPGRADES) {
+    if (stormUpgrades[upgrade.id] >= upgrade.level) {
+      continue;
+    }
+
+    stormCells = Math.max(0, stormCells - upgrade.cost);
+    stormUpgrades[upgrade.id] = upgrade.level;
+  }
+
+  return { stormCells, stormUpgrades };
+}
+
+/**
  * Performs a storm-front reset.
  */
 export function performStormFrontReset<T extends WeatherReactorState>(state: T): T {
   const gainedStormCells = getStormCellGain(state);
+  const trunkResult = applyFirstStormTrunk(state, gainedStormCells);
   const resetState = createInitialState({
     cloudCores: state.cloudCores,
     totalCloudCores: state.totalCloudCores,
@@ -398,7 +434,7 @@ export function performStormFrontReset<T extends WeatherReactorState>(state: T):
     monsoonCyclesInFront: 0,
     pressure: 0,
     totalPressureSpentThisFront: 0,
-    stormCells: state.stormCells + gainedStormCells,
+    stormCells: trunkResult.stormCells,
     totalStormCells: state.totalStormCells + gainedStormCells,
     totalStormFronts: state.totalStormFronts + 1,
     stormFrontsInClimate: state.stormFrontsInClimate + 1,
@@ -406,7 +442,7 @@ export function performStormFrontReset<T extends WeatherReactorState>(state: T):
     totalClimateThreads: state.totalClimateThreads,
     totalClimateRewrites: state.totalClimateRewrites,
     activeClimateLaws: state.activeClimateLaws,
-    stormUpgrades: state.stormUpgrades,
+    stormUpgrades: trunkResult.stormUpgrades,
     skyHeartPulseLevel: state.skyHeartPulseLevel,
     permanentUpgrades: state.permanentUpgrades,
     skyHeartAwakened: state.skyHeartAwakened,
@@ -419,7 +455,7 @@ export function performStormFrontReset<T extends WeatherReactorState>(state: T):
     ...state,
     ...resetState,
     pressureUpgrades: createEmptyPressureUpgrades(),
-    stormUpgrades: state.stormUpgrades,
+    stormUpgrades: trunkResult.stormUpgrades,
     climateLaws: state.climateLaws,
     clickCooldownRemaining: 0,
   };

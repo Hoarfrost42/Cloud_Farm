@@ -24,6 +24,10 @@
    - 给后续 Codex/代理的项目内工作准则。
    - 包含当前开发边界、验收命令和文档事实源。
 
+5. `docs/weekend-launch-gameplay-adjustment-plan-v2.md`
+   - 外部 v2 计划的项目执行版。
+   - 当前用于第一风暴主干、第一风暴到第二风暴曲线和下一批游戏性调优。
+
 ## 历史与辅助文档
 
 | 文档 | 当前用途 | 可信度说明 |
@@ -33,6 +37,9 @@
 | `weather-reactor-external-discussion-brief.md` | 给外部 GPT 或数值设计讨论的简报 | 已更新到 v13 讨论口径 |
 | `weather-reactor-simulation-strategy-notes.md` | 真人策略、模拟策略和风暴主干诊断记录 | 当前调参辅助事实源 |
 | `weather-reactor-test-strategy.md` | 测试策略与后续模拟增强建议 | 当前调参辅助参考 |
+| `weekend-launch-action-plan.md` | 外部 Pro 周末上线建议原始参考 | 长文参考，不直接作为执行顺序 |
+| `weekend-launch-execution-notes.md` | 第一版仓库执行笔记 | 已被 v2 执行版补充；历史调参路径仍有参考价值 |
+| `weekend-launch-gameplay-adjustment-plan-v2.md` | v2 项目执行版，聚焦第一风暴到第二风暴 | 当前下一步游戏性调优入口 |
 | `archive/legacy-v0-pixi-phaser/README.md` | 旧 v0/Pixi/Phaser 路线归档说明 | 只作历史参考 |
 
 ## 当前代码事实源

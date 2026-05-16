@@ -9,6 +9,7 @@ import {
   RESOURCE_KEYS,
   ROOT_WAKE_BASE_RATE,
   ROOT_WAKE_RATE_MULTIPLIER,
+  STORM_TRUNK_UPGRADES,
   WEATHER_AMPLIFIER_MULTIPLIER,
   WIND_EYE_BASE_RATE,
   WIND_EYE_RATE_MULTIPLIER,
@@ -456,6 +457,15 @@ export const STORM_UPGRADES: LayerUpgradeDefinition<StormUpgradeId>[] = [
     description: "风暴胞指数奖励提高。",
     costSequence: [8, 12],
   },
+];
+
+export const STORM_TRUNK_IDS: StormUpgradeId[] = STORM_TRUNK_UPGRADES.map((upgrade) => upgrade.id);
+
+export const STORM_BRANCH_IDS: StormUpgradeId[] = [
+  "stormBatch",
+  "windEyeRelic",
+  "frontScar",
+  "stormPrism",
 ];
 
 export const CLIMATE_LAWS: LayerUpgradeDefinition<ClimateLawId>[] = [

@@ -10,6 +10,7 @@ import {
   RESOURCE_LABELS,
   SAVE_KEY,
   STORM_UPGRADES,
+  STORM_TRUNK_UPGRADES,
   UPGRADE_GROUPS,
   applyCloudTouch,
   applyPermanentUpgradeEffects,
@@ -50,6 +51,7 @@ import {
   getUpgrade,
   getUpgradeActionDescription,
   getUpgradeCost,
+  hasStormTrunk,
   isRunUpgradeMaxed,
   isUpgradeVisible,
   log10Safe,
@@ -127,6 +129,8 @@ export default function App() {
   const canRunCurrentClimateRewrite = canRunClimateRewrite(state);
   const canBuySkyHeartPulse = canBuySkyHeartPulseState(state);
   const canAwakenSkyHeart = canAwakenSkyHeartState(state);
+  const stormTrunkProgress = STORM_TRUNK_UPGRADES.filter((upgrade) => state.stormUpgrades[upgrade.id] >= upgrade.level).length;
+  const stormTrunkComplete = hasStormTrunk(state);
   const cloudCoreGain = getCloudCoreGain(state);
   const stormCellGain = getStormCellGain(state);
   const climateThreadGain = getClimateThreadGain(state);
@@ -329,9 +333,13 @@ export default function App() {
 
       const gainedStormCells = getStormCellGain(currentState);
       const nextState = performStormFrontReset(currentState);
+      const spentOnTrunk = gainedStormCells - (nextState.stormCells - currentState.stormCells);
+      const firstStormText = currentState.totalStormFronts === 0 && spentOnTrunk > 0
+        ? `其中 ${spentOnTrunk} 点点亮风暴主干。`
+        : "";
       return {
         ...nextState,
-        notice: createNotice("success", `风暴前线完成，获得 ${gainedStormCells} 风暴胞。`),
+        notice: createNotice("success", `风暴前线完成，获得 ${gainedStormCells} 风暴胞。${firstStormText}`),
       };
     });
   }
@@ -880,6 +888,14 @@ export default function App() {
         {state.totalStormFronts > 0 || state.stormCells > 0 ? (
           <section>
             <span className="section-kicker">风暴图谱</span>
+            <div className={stormTrunkComplete ? "storm-trunk-summary storm-trunk-summary--complete" : "storm-trunk-summary"}>
+              <strong>风暴主干 {stormTrunkProgress}/{STORM_TRUNK_UPGRADES.length}</strong>
+              <span>
+                {stormTrunkComplete
+                  ? "前线记忆、雷暴上升、雨阶过载已成为新的天气骨架。"
+                  : "第一次风暴会优先点亮基础主干，避免隐藏购买顺序。"}
+              </span>
+            </div>
             <div className="upgrade-list">
               {STORM_UPGRADES.map((upgrade) => {
                 const level = state.stormUpgrades[upgrade.id];

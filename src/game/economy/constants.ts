@@ -39,6 +39,13 @@ export const MAX_PRESSURE_EXPONENT_BONUS = 12;
 export const MAX_STORM_EXPONENT_BONUS = 48;
 export const MAX_CLIMATE_EXPONENT_BONUS = 70;
 
+export const STORM_TRUNK_UPGRADES = [
+  { id: "frontMemory", level: 1, cost: 1 },
+  { id: "thunderUpdraft", level: 1, cost: 2 },
+  { id: "rainOverload", level: 1, cost: 1 },
+] as const;
+export const STORM_TRUNK_COST = 4;
+
 export const RESOURCE_KEYS: ResourceKey[] = ["weather", "droplets", "roots", "clouds"];
 
 export const RESOURCE_LABELS: Record<ResourceKey, { name: string; icon: string; description: string }> = {
