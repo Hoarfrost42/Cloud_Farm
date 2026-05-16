@@ -6,6 +6,7 @@ import {
   canPay,
   canRunMonsoon,
   createInitialState,
+  getMonsoonWeatherTarget,
   getRainRankRequirement,
   getUpgrade,
   getUpgradeCost,
@@ -17,35 +18,43 @@ import {
 
 const STEP_SECONDS = 1;
 const MAX_SECONDS = 21600;
+const QUIET_WARNING_SECONDS = 600;
+const RANK_MILESTONES = [1, 3, 6, 8, MONSOON_RAIN_RANK_REQUIREMENT];
+const FIRST_LEVEL_BEFORE_RANK_RESET = ["rootWake", "cloudBloom", "windEye", "heavyRain", "monsoonPull"];
+const ALL_UPGRADE_IDS = UPGRADE_DEFINITIONS.map((upgrade) => upgrade.id);
 
 const strategies = [
   {
-    name: "early-click-auto",
-    description: "先买点击和自动生成，再买倍率，够雨阶就重置。",
-    order: ["cloudTouch", "dropletSeed", "weatherAmplifier", "rootWake", "cloudBloom", "windEye", "heavyRain", "monsoonPull", "autoDrizzle"],
-    buyBeforeReset: ["rootWake", "cloudBloom", "windEye", "heavyRain", "monsoonPull"],
-    resetFirst: true,
-  },
-  {
-    name: "auto-rush",
-    description: "只买点击和活力基流，测试纯早期路线是否会卡住。",
-    order: ["cloudTouch", "dropletSeed"],
-    resetFirst: true,
-  },
-  {
-    name: "producer-chain",
-    description: "雨阶后优先打通根系、云团、风眼生产链。",
-    getOrder: (state) => (state.rainRanks < 3
-      ? ["cloudTouch", "dropletSeed", "weatherAmplifier", "rootWake"]
-      : ["rootWake", "cloudBloom", "windEye", "dropletSeed", "weatherAmplifier", "heavyRain", "monsoonPull", "cloudTouch"]),
-    buyBeforeReset: ["rootWake", "cloudBloom", "windEye", "heavyRain", "monsoonPull"],
-    resetFirst: true,
-  },
-  {
-    name: "value-greedy",
-    description: "贪心估算：每次买 45 秒内天气收益提升/成本最高的可见升级，买不到再雨阶。",
-    chooseUpgrade: chooseBestValueUpgrade,
+    name: "guided-human",
+    description: "按当前 UI 目标理解来买：先建立基流，再按雨阶推进生产者链和季风牵引。",
+    chooseUpgrade: (state) => chooseFirstAffordable(state, getGuidedOrder(state)),
+    buyBeforeReset: FIRST_LEVEL_BEFORE_RANK_RESET,
     resetFirst: false,
+  },
+  {
+    name: "roi-greedy-45s",
+    description: "买 45 秒内天气活力收益/成本最高的可见升级，代表短线熟练玩家。",
+    chooseUpgrade: (state) => chooseBestValueUpgrade(state, 45),
+    resetFirst: false,
+  },
+  {
+    name: "roi-greedy-180s",
+    description: "买 180 秒内天气活力收益/成本最高的可见升级，代表更有耐心的 ROI 玩家。",
+    chooseUpgrade: (state) => chooseBestValueUpgrade(state, 180),
+    resetFirst: false,
+  },
+  {
+    name: "comfort-first",
+    description: "优先点击、基流和明确自动增长，再补生产者链；够雨阶时偏向先 reset。",
+    chooseUpgrade: (state) => chooseFirstAffordable(state, getComfortOrder(state)),
+    buyBeforeReset: ["rootWake", "cloudBloom", "windEye"],
+    resetFirst: true,
+  },
+  {
+    name: "bad-but-plausible",
+    description: "过度强化早期点击和基流，较晚补生产者链，用来测试低效但合理的路线。",
+    chooseUpgrade: (state) => chooseFirstAffordable(state, getBadButPlausibleOrder(state)),
+    resetFirst: true,
   },
 ];
 
@@ -53,16 +62,28 @@ const results = strategies.map((strategy) => simulateStrategy(strategy));
 
 console.log("Weather strategy simulation");
 console.log("Formula source: src/game/economy/*");
+console.log(`Quiet warning threshold: ${formatTime(QUIET_WARNING_SECONDS)}`);
 console.log("");
+
 for (const result of results) {
-  console.log(`${result.name}`);
+  console.log(result.name);
   console.log(`  ${result.description}`);
   console.log(
     `  passive: ${formatTime(result.firstPassiveAt)} | `
-    + `rank 1/3/6/8/${MONSOON_RAIN_RANK_REQUIREMENT}: ${formatTime(result.firstRankAt)} / ${formatTime(result.rank3At)} / ${formatTime(result.rank6At)} / ${formatTime(result.rank8At)} / ${formatTime(result.monsoonRankAt)} | `
+    + `rank 1/3/6/8/${MONSOON_RAIN_RANK_REQUIREMENT}: `
+    + `${formatTime(result.rankAt[1])} / ${formatTime(result.rankAt[3])} / ${formatTime(result.rankAt[6])} / `
+    + `${formatTime(result.rankAt[8])} / ${formatTime(result.rankAt[MONSOON_RAIN_RANK_REQUIREMENT])} | `
     + `monsoon: ${formatTime(result.firstMonsoonAt)}`,
   );
-  console.log(`  final: rank ${result.rainRanks}, cloudLevel ${result.cloudLevel}, weather ${formatNumber(result.resources.weather)}, droplets ${formatNumber(result.resources.droplets)}, roots ${formatNumber(result.resources.roots)}, clouds ${formatNumber(result.resources.clouds)}`);
+  console.log(
+    `  quiet: max ${formatTime(result.maxQuietSeconds)}, `
+    + `${result.quietWarnings.length} warning${result.quietWarnings.length === 1 ? "" : "s"}`,
+  );
+  console.log(
+    `  final: rank ${result.rainRanks}, cloudLevel ${result.cloudLevel}, `
+    + `weather ${formatNumber(result.resources.weather)}, droplets ${formatNumber(result.resources.droplets)}, `
+    + `roots ${formatNumber(result.resources.roots)}, clouds ${formatNumber(result.resources.clouds)}`,
+  );
   console.log(`  purchases: ${formatPurchases(result.purchases)}`);
   console.log(`  bottleneck: ${result.bottleneck}`);
 }
@@ -70,63 +91,94 @@ for (const result of results) {
 function simulateStrategy(strategy) {
   const state = createInitialState();
   const purchases = {};
-  const milestones = {
-    firstPassiveAt: null,
-    firstRankAt: null,
-    rank3At: null,
-    rank6At: null,
-    rank8At: null,
-    monsoonRankAt: null,
-    firstMonsoonAt: null,
-  };
+  const rankAt = Object.fromEntries(RANK_MILESTONES.map((rank) => [rank, null]));
+  const quietWarnings = [];
+  let firstPassiveAt = null;
+  let firstMonsoonAt = null;
+  let lastActionSecond = 0;
+  let maxQuietSeconds = 0;
 
-  for (let tick = 1; tick <= MAX_SECONDS / STEP_SECONDS; tick += 1) {
-    const second = tick * STEP_SECONDS;
-    state.elapsedSeconds = second;
+  for (let second = STEP_SECONDS; second <= MAX_SECONDS; second += STEP_SECONDS) {
     tickState(state, STEP_SECONDS);
+    markMilestones();
 
-    const boughtBeforeReset = canClaimRainRank(state)
-      ? buyFirstLevelUpgrade(state, strategy.buyBeforeReset, purchases)
-      : false;
+    if (canRunMonsoon(state)) {
+      firstMonsoonAt = second;
+      break;
+    }
 
-    if (boughtBeforeReset) {
-      // Keep the current run alive after buying a production-chain unlock; it exists to push this run farther.
-    } else if (strategy.resetFirst && canClaimRainRank(state)) {
-      Object.assign(state, performRainRankReset(state));
+    const actionTaken = runStrategyAction(state, strategy, purchases);
+    markMilestones();
+
+    if (canRunMonsoon(state)) {
+      firstMonsoonAt = second;
+      break;
+    }
+
+    if (actionTaken) {
+      lastActionSecond = second;
     } else {
-      const boughtUpgrade = strategy.chooseUpgrade
-        ? buyChosenUpgrade(state, strategy.chooseUpgrade(state), purchases)
-        : buyAvailableUpgrade(state, getStrategyOrder(strategy, state), purchases);
-
-      if (!boughtUpgrade && canClaimRainRank(state)) {
-        Object.assign(state, performRainRankReset(state));
+      const quietSeconds = second - lastActionSecond;
+      maxQuietSeconds = Math.max(maxQuietSeconds, quietSeconds);
+      if (quietSeconds > 0 && quietSeconds % QUIET_WARNING_SECONDS === 0) {
+        quietWarnings.push({
+          start: second - quietSeconds,
+          end: second,
+          bottleneck: getBottleneck(state),
+        });
       }
     }
+  }
 
-    if (!milestones.firstPassiveAt && state.upgrades.dropletSeed >= 1) milestones.firstPassiveAt = second;
-    if (!milestones.firstRankAt && state.rainRanks >= 1) milestones.firstRankAt = second;
-    if (!milestones.rank3At && state.rainRanks >= 3) milestones.rank3At = second;
-    if (!milestones.rank6At && state.rainRanks >= 6) milestones.rank6At = second;
-    if (!milestones.rank8At && state.rainRanks >= 8) milestones.rank8At = second;
-    if (!milestones.monsoonRankAt && state.rainRanks >= MONSOON_RAIN_RANK_REQUIREMENT) {
-      milestones.monsoonRankAt = second;
+  function markMilestones() {
+    if (!firstPassiveAt && state.upgrades.dropletSeed >= 1) {
+      firstPassiveAt = Math.floor(state.elapsedSeconds);
     }
-    if (!milestones.firstMonsoonAt && canRunMonsoon(state)) {
-      milestones.firstMonsoonAt = second;
-      break;
+
+    for (const rank of RANK_MILESTONES) {
+      if (!rankAt[rank] && state.rainRanks >= rank) {
+        rankAt[rank] = Math.floor(state.elapsedSeconds);
+      }
     }
   }
 
   return {
     name: strategy.name,
     description: strategy.description,
-    ...milestones,
+    firstPassiveAt,
+    rankAt,
+    firstMonsoonAt,
+    maxQuietSeconds,
+    quietWarnings,
     rainRanks: state.rainRanks,
     cloudLevel: state.cloudLevel,
     resources: { ...state.resources },
     bottleneck: getBottleneck(state),
     purchases,
   };
+}
+
+function runStrategyAction(state, strategy, purchases) {
+  if (canClaimRainRank(state) && buyFirstLevelUpgrade(state, strategy.buyBeforeReset, purchases)) {
+    return true;
+  }
+
+  if (strategy.resetFirst && canClaimRainRank(state)) {
+    Object.assign(state, performRainRankReset(state));
+    return true;
+  }
+
+  const chosenUpgrade = strategy.chooseUpgrade?.(state) ?? null;
+  if (buyChosenUpgrade(state, chosenUpgrade, purchases)) {
+    return true;
+  }
+
+  if (canClaimRainRank(state)) {
+    Object.assign(state, performRainRankReset(state));
+    return true;
+  }
+
+  return false;
 }
 
 function tickState(state, seconds) {
@@ -137,62 +189,124 @@ function tickState(state, seconds) {
   Object.assign(state, runTick(state, seconds));
 }
 
-function getStrategyOrder(strategy, state) {
-  return strategy.getOrder ? strategy.getOrder(state) : strategy.order;
-}
-
-function buyAvailableUpgrade(state, order, purchases) {
-  if (!order) return false;
-
-  for (const upgradeId of order) {
-    if (!buyChosenUpgrade(state, upgradeId, purchases)) continue;
-    return true;
+function getGuidedOrder(state) {
+  if (state.rainRanks < 1) {
+    return ["cloudTouch", "dropletSeed", "weatherAmplifier"];
   }
 
-  return false;
+  if (state.rainRanks < 3) {
+    return ["rootWake", "weatherAmplifier", "dropletSeed", "cloudTouch"];
+  }
+
+  if (state.rainRanks < 6) {
+    return ["cloudBloom", "rootWake", "weatherAmplifier", "dropletSeed", "windEye", "cloudTouch"];
+  }
+
+  if (state.rainRanks < MONSOON_RAIN_RANK_REQUIREMENT) {
+    return ["windEye", "cloudBloom", "rootWake", "heavyRain", "weatherAmplifier", "dropletSeed", "cloudTouch"];
+  }
+
+  return ["monsoonPull", "heavyRain", "weatherAmplifier", "windEye", "cloudBloom", "rootWake", "dropletSeed", "cloudTouch"];
+}
+
+function getComfortOrder(state) {
+  if (state.rainRanks < 1) {
+    return ["cloudTouch", "dropletSeed", "weatherAmplifier"];
+  }
+
+  return [
+    "cloudTouch",
+    "dropletSeed",
+    "weatherAmplifier",
+    "rootWake",
+    "cloudBloom",
+    "windEye",
+    "heavyRain",
+    "monsoonPull",
+  ];
+}
+
+function getBadButPlausibleOrder(state) {
+  if (state.rainRanks < 8) {
+    return ["cloudTouch", "dropletSeed", "weatherAmplifier"];
+  }
+
+  return [
+    "cloudTouch",
+    "dropletSeed",
+    "weatherAmplifier",
+    "heavyRain",
+    "monsoonPull",
+    "rootWake",
+    "cloudBloom",
+    "windEye",
+  ];
+}
+
+function chooseFirstAffordable(state, order) {
+  if (!order) {
+    return null;
+  }
+
+  return order.find((upgradeId) => canBuyUpgrade(state, upgradeId)) ?? null;
 }
 
 function buyFirstLevelUpgrade(state, order, purchases) {
-  if (!order) return false;
+  if (!order) {
+    return false;
+  }
 
   for (const upgradeId of order) {
-    if (state.upgrades[upgradeId] > 0) continue;
-    if (!buyChosenUpgrade(state, upgradeId, purchases)) continue;
-    return true;
+    if (state.upgrades[upgradeId] > 0) {
+      continue;
+    }
+
+    if (buyChosenUpgrade(state, upgradeId, purchases)) {
+      return true;
+    }
   }
 
   return false;
 }
 
 function buyChosenUpgrade(state, upgradeId, purchases) {
-  if (!upgradeId || !isUpgradeVisible(state, upgradeId)) return false;
+  if (!upgradeId || !canBuyUpgrade(state, upgradeId)) {
+    return false;
+  }
 
   const upgrade = getUpgrade(upgradeId);
   const cost = getUpgradeCost(state, upgrade);
-  if (!canPay(state.resources, cost)) return false;
-
   state.resources = payCost(state.resources, cost);
   state.upgrades[upgradeId] += 1;
+
   if (purchases) {
     purchases[upgradeId] = (purchases[upgradeId] ?? 0) + 1;
   }
+
   return true;
 }
 
-function chooseBestValueUpgrade(state) {
+function canBuyUpgrade(state, upgradeId) {
+  if (!isUpgradeVisible(state, upgradeId)) {
+    return false;
+  }
+
+  return canPay(state.resources, getUpgradeCost(state, getUpgrade(upgradeId)));
+}
+
+function chooseBestValueUpgrade(state, horizonSeconds) {
   const candidates = UPGRADE_DEFINITIONS
-    .filter((upgrade) => isUpgradeVisible(state, upgrade.id))
-    .filter((upgrade) => canPay(state.resources, getUpgradeCost(state, upgrade)));
+    .filter((upgrade) => canBuyUpgrade(state, upgrade.id));
 
   let bestUpgradeId = null;
   let bestScore = 0;
+  const currentProjection = projectWeatherAfterSeconds(state, horizonSeconds);
 
   for (const upgrade of candidates) {
-    const currentProjection = projectWeatherAfterSeconds(state, 45);
     const nextState = cloneState(state);
     buyChosenUpgrade(nextState, upgrade.id);
-    const nextProjection = projectWeatherAfterSeconds(nextState, 45);
-    const gainDelta = nextProjection - currentProjection;
+    const nextProjection = projectWeatherAfterSeconds(nextState, horizonSeconds);
+    const gainDelta = Math.max(0, nextProjection - currentProjection);
     const score = gainDelta / Math.max(1, getWeightedCost(getUpgradeCost(state, upgrade)));
 
     if (score > bestScore) {
@@ -235,7 +349,7 @@ function canClaimRainRank(state) {
 
 function getBottleneck(state) {
   if (state.rainRanks < MONSOON_RAIN_RANK_REQUIREMENT) {
-    return `${formatNumber(getRainRankRequirement(state) - state.resources.weather)} weather to rank ${state.rainRanks + 1}`;
+    return `${formatNumber(Math.max(0, getRainRankRequirement(state) - state.resources.weather))} weather to rank ${state.rainRanks + 1}`;
   }
 
   if (state.upgrades.windEye <= 0) {
@@ -243,28 +357,38 @@ function getBottleneck(state) {
   }
 
   if (!canRunMonsoon(state)) {
-    return "needs monsoon weather target";
+    return `${formatNumber(Math.max(0, getMonsoonWeatherTarget(state) - state.resources.weather))} weather to monsoon`;
   }
 
   return "ready for monsoon";
 }
 
 function formatTime(second) {
-  if (!second) return "never";
+  if (!second) {
+    return "never";
+  }
+
   const rounded = Math.floor(second);
   return `${Math.floor(rounded / 60)}:${String(rounded % 60).padStart(2, "0")}`;
 }
 
 function formatNumber(value) {
   const absValue = Math.abs(value);
-  if (absValue >= 1e6) return value.toExponential(2).replace("e+", "e");
-  if (absValue >= 1000) return `${(value / 1000).toFixed(1)}K`;
+  if (absValue >= 1e6) {
+    return value.toExponential(2).replace("e+", "e");
+  }
+
+  if (absValue >= 1000) {
+    return `${(value / 1000).toFixed(1)}K`;
+  }
+
   return Math.round(value).toString();
 }
 
 function formatPurchases(purchases) {
   const entries = Object.entries(purchases)
     .filter(([, count]) => count > 0)
+    .sort(([leftId], [rightId]) => ALL_UPGRADE_IDS.indexOf(leftId) - ALL_UPGRADE_IDS.indexOf(rightId))
     .map(([upgradeId, count]) => `${upgradeId} x${count}`);
 
   return entries.length > 0 ? entries.join(", ") : "none";

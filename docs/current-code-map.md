@@ -42,6 +42,14 @@ scripts/simulate-weather-strategies.mjs
 scripts/simulate-weather-reactor.mjs
 ```
 
+`simulate-weather-strategies.mjs` 是当前 v12 调优主脚本，覆盖：
+
+- `guided-human`：按当前 UI 目标理解购买；
+- `roi-greedy-45s`：短线 ROI 熟练玩家；
+- `roi-greedy-180s`：更长期 ROI 玩家；
+- `comfort-first`：优先舒适和明确自动增长；
+- `bad-but-plausible`：过度强化早期按钮、较晚补生产者链的低效路线。
+
 旧 `simulate-ten-minute.mjs` 已归档到 `archive/legacy-v0-pixi-phaser/scripts/`，不应作为天气反应堆平衡依据。
 
 ## 2. 当前编译边界
