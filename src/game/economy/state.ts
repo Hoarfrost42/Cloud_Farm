@@ -1,6 +1,38 @@
 import { CLOUD_LEVEL_THRESHOLDS, RESOURCE_KEYS } from "./constants.ts";
-import type { PermanentUpgradeId, ResourceCost, ResourceMap, UpgradeId, WeatherReactorState } from "./types.ts";
+import { log10Safe } from "./logNumbers.ts";
+import type {
+  ActiveClimateLawId,
+  ClimateLawId,
+  PermanentUpgradeId,
+  PressureUpgradeId,
+  ResourceCost,
+  ResourceMap,
+  StormUpgradeId,
+  UpgradeId,
+  WeatherReactorState,
+} from "./types.ts";
 import { PERMANENT_UPGRADES, UPGRADE_DEFINITIONS } from "./upgrades.ts";
+
+const PRESSURE_UPGRADE_IDS: PressureUpgradeId[] = ["lowPressure", "updraft", "eyeWall", "frontCompression", "pressureGauge"];
+const STORM_UPGRADE_IDS: StormUpgradeId[] = [
+  "frontMemory",
+  "rainOverload",
+  "thunderUpdraft",
+  "frontScar",
+  "stormBatch",
+  "windEyeRelic",
+  "stormPrism",
+];
+const CLIMATE_LAW_IDS: ClimateLawId[] = [
+  "condensationLaw",
+  "deepRootLaw",
+  "returningMonsoon",
+  "stormWeaving",
+  "cloudCoreRefraction",
+  "skyHeartOmen",
+  "climateCodex",
+];
+const ACTIVE_CLIMATE_LAW_IDS: ActiveClimateLawId[] = ["quietRain", "thunderCloud", "backflow", "shortDay"];
 
 /**
  * Creates a new run, optionally preserving meta progression.
@@ -12,8 +44,23 @@ export function createInitialState(
       | "cloudCores"
       | "totalCloudCores"
       | "monsoonCycles"
+      | "totalMonsoonCycles"
+      | "monsoonCyclesInFront"
+      | "pressure"
+      | "totalPressureSpentThisFront"
+      | "stormCells"
+      | "totalStormCells"
+      | "totalStormFronts"
+      | "stormFrontsInClimate"
+      | "climateThreads"
+      | "totalClimateThreads"
+      | "totalClimateRewrites"
+      | "activeClimateLaws"
+      | "stormUpgrades"
+      | "skyHeartPulseLevel"
       | "permanentUpgrades"
       | "bestWeather"
+      | "bestWeatherExp"
       | "skyHeartAwakened"
       | "elapsedSeconds"
       | "rainRanks"
@@ -21,6 +68,9 @@ export function createInitialState(
   >,
 ): WeatherReactorState {
   const permanentUpgrades = meta?.permanentUpgrades ?? [];
+  const stormUpgrades = meta?.stormUpgrades ?? createEmptyStormUpgrades();
+  const bestWeather = meta?.bestWeather ?? 0;
+  const bestWeatherExp = Math.max(meta?.bestWeatherExp ?? Number.NEGATIVE_INFINITY, log10Safe(bestWeather), 0);
   const upgrades = createEmptyUpgrades();
   if (permanentUpgrades.includes("dropletEcho")) {
     upgrades.dropletSeed = 1;
@@ -34,15 +84,35 @@ export function createInitialState(
   return {
     resources: createEmptyResources(),
     upgrades,
-    cloudLevel: 0,
-    rainRanks: meta?.rainRanks ?? (permanentUpgrades.includes("drizzleMemory") ? 1 : 0),
+    pressureUpgrades: createEmptyPressureUpgrades(),
+    stormUpgrades,
+    climateLaws: createEmptyClimateLaws(),
+    cloudLevel: getCloudLevelFromWeather(bestWeather),
+    rainRanks: Math.max(
+      meta?.rainRanks ?? 0,
+      getInitialRainRanks(permanentUpgrades, meta?.totalStormFronts ?? 0, stormUpgrades.frontMemory),
+    ),
     cloudCores: meta?.cloudCores ?? 0,
     totalCloudCores: meta?.totalCloudCores ?? meta?.cloudCores ?? 0,
     monsoonCycles: meta?.monsoonCycles ?? 0,
+    totalMonsoonCycles: meta?.totalMonsoonCycles ?? meta?.monsoonCycles ?? 0,
+    monsoonCyclesInFront: meta?.monsoonCyclesInFront ?? 0,
+    pressure: meta?.pressure ?? 0,
+    totalPressureSpentThisFront: meta?.totalPressureSpentThisFront ?? 0,
+    stormCells: meta?.stormCells ?? 0,
+    totalStormCells: meta?.totalStormCells ?? meta?.stormCells ?? 0,
+    totalStormFronts: meta?.totalStormFronts ?? 0,
+    stormFrontsInClimate: meta?.stormFrontsInClimate ?? 0,
+    climateThreads: meta?.climateThreads ?? 0,
+    totalClimateThreads: meta?.totalClimateThreads ?? meta?.climateThreads ?? 0,
+    totalClimateRewrites: meta?.totalClimateRewrites ?? 0,
+    activeClimateLaws: meta?.activeClimateLaws ?? [],
+    skyHeartPulseLevel: meta?.skyHeartPulseLevel ?? 0,
     skyHeartAwakened: meta?.skyHeartAwakened ?? false,
     permanentUpgrades,
     clickCooldownRemaining: 0,
-    bestWeather: meta?.bestWeather ?? 0,
+    bestWeather,
+    bestWeatherExp,
     elapsedSeconds: meta?.elapsedSeconds ?? 0,
   };
 }
@@ -57,21 +127,41 @@ export function normalizeState(savedState: Partial<WeatherReactorState>): Weathe
     : [];
   const resources = normalizeResourceRecord(savedState.resources);
   const bestWeather = Math.max(normalizeNumber(savedState.bestWeather), resources.weather);
+  const bestWeatherExp = Math.max(normalizeNumber(savedState.bestWeatherExp), log10Safe(bestWeather));
   const cloudLevel = getCloudLevelFromWeather(bestWeather);
 
   return {
     ...initialState,
     resources,
     upgrades: normalizeUpgradeRecord(savedState.upgrades),
+    pressureUpgrades: normalizeLayerRecord(savedState.pressureUpgrades, PRESSURE_UPGRADE_IDS),
+    stormUpgrades: normalizeLayerRecord(savedState.stormUpgrades, STORM_UPGRADE_IDS),
+    climateLaws: normalizeLayerRecord(savedState.climateLaws, CLIMATE_LAW_IDS),
     cloudLevel,
     rainRanks: normalizeNumber(savedState.rainRanks),
     cloudCores: normalizeNumber(savedState.cloudCores),
     totalCloudCores: Math.max(normalizeNumber(savedState.totalCloudCores), normalizeNumber(savedState.cloudCores)),
     monsoonCycles: normalizeNumber(savedState.monsoonCycles),
+    totalMonsoonCycles: Math.max(normalizeNumber(savedState.totalMonsoonCycles), normalizeNumber(savedState.monsoonCycles)),
+    monsoonCyclesInFront: normalizeNumber(savedState.monsoonCyclesInFront),
+    pressure: normalizeNumber(savedState.pressure),
+    totalPressureSpentThisFront: normalizeNumber(savedState.totalPressureSpentThisFront),
+    stormCells: normalizeNumber(savedState.stormCells),
+    totalStormCells: Math.max(normalizeNumber(savedState.totalStormCells), normalizeNumber(savedState.stormCells)),
+    totalStormFronts: normalizeNumber(savedState.totalStormFronts),
+    stormFrontsInClimate: normalizeNumber(savedState.stormFrontsInClimate),
+    climateThreads: normalizeNumber(savedState.climateThreads),
+    totalClimateThreads: Math.max(normalizeNumber(savedState.totalClimateThreads), normalizeNumber(savedState.climateThreads)),
+    totalClimateRewrites: normalizeNumber(savedState.totalClimateRewrites),
+    activeClimateLaws: Array.isArray(savedState.activeClimateLaws)
+      ? savedState.activeClimateLaws.filter(isActiveClimateLawId)
+      : [],
+    skyHeartPulseLevel: normalizeNumber(savedState.skyHeartPulseLevel),
     skyHeartAwakened: savedState.skyHeartAwakened === true,
     permanentUpgrades,
     clickCooldownRemaining: normalizeNumber(savedState.clickCooldownRemaining),
     bestWeather,
+    bestWeatherExp,
     elapsedSeconds: normalizeNumber(savedState.elapsedSeconds),
   };
 }
@@ -81,11 +171,13 @@ export function normalizeState(savedState: Partial<WeatherReactorState>): Weathe
  */
 export function syncCloudUnlocks<T extends WeatherReactorState>(state: T): T {
   const bestWeather = Math.max(state.bestWeather, state.resources.weather);
+  const bestWeatherExp = Math.max(state.bestWeatherExp, log10Safe(bestWeather));
   const cloudLevel = getCloudLevelFromWeather(bestWeather);
 
   return {
     ...state,
     bestWeather,
+    bestWeatherExp,
     cloudLevel,
   };
 }
@@ -198,6 +290,27 @@ export function createEmptyUpgrades(): Record<UpgradeId, number> {
   return Object.fromEntries(UPGRADE_DEFINITIONS.map((upgrade) => [upgrade.id, 0])) as Record<UpgradeId, number>;
 }
 
+/**
+ * Creates a blank pressure upgrade record.
+ */
+export function createEmptyPressureUpgrades(): Record<PressureUpgradeId, number> {
+  return Object.fromEntries(PRESSURE_UPGRADE_IDS.map((upgradeId) => [upgradeId, 0])) as Record<PressureUpgradeId, number>;
+}
+
+/**
+ * Creates a blank storm atlas record.
+ */
+export function createEmptyStormUpgrades(): Record<StormUpgradeId, number> {
+  return Object.fromEntries(STORM_UPGRADE_IDS.map((upgradeId) => [upgradeId, 0])) as Record<StormUpgradeId, number>;
+}
+
+/**
+ * Creates a blank climate law record.
+ */
+export function createEmptyClimateLaws(): Record<ClimateLawId, number> {
+  return Object.fromEntries(CLIMATE_LAW_IDS.map((lawId) => [lawId, 0])) as Record<ClimateLawId, number>;
+}
+
 function normalizeResourceRecord(resources: Partial<ResourceMap> | undefined) {
   return {
     weather: normalizeNumber(resources?.weather),
@@ -214,4 +327,18 @@ function normalizeUpgradeRecord(upgrades: Partial<Record<UpgradeId, number>> | u
   }
 
   return normalized;
+}
+
+function normalizeLayerRecord<Id extends string>(record: Partial<Record<Id, number>> | undefined, ids: Id[]) {
+  return Object.fromEntries(ids.map((id) => [id, normalizeNumber(record?.[id])])) as Record<Id, number>;
+}
+
+function isActiveClimateLawId(value: unknown): value is ActiveClimateLawId {
+  return typeof value === "string" && ACTIVE_CLIMATE_LAW_IDS.includes(value as ActiveClimateLawId);
+}
+
+function getInitialRainRanks(permanentUpgrades: PermanentUpgradeId[], totalStormFronts: number, frontMemoryLevel: number) {
+  const drizzleMemoryRanks = permanentUpgrades.includes("drizzleMemory") ? 1 : 0;
+  const frontMemoryRanks = frontMemoryLevel > 0 ? totalStormFronts : 0;
+  return drizzleMemoryRanks + frontMemoryRanks;
 }

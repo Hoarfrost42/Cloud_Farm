@@ -1,0 +1,6 @@
+id,task_type,title,status,depends_on,task_dir,validation,notes
+1,single-full,Implement v13 economy state and log-safe progression,DONE,,tasks/economy,npm run typecheck,Passed 2026-05-16
+2,single-full,Implement v13 reset layers and upgrades,DONE,1,tasks/layers,npm run typecheck,Passed 2026-05-16
+3,single-full,Connect React UI to v13 systems,DONE,2,tasks/ui,npm run build,Passed 2026-05-16
+4,single-full,Extend strategy simulator to full v13 route,DONE,2,tasks/sim,npm run simulate:weather-strategies,Passed 2026-05-16
+5,single-full,Update docs and final validation,DONE,3;4,tasks/docs,npm run typecheck && npm run build && npm run simulate:weather-strategies,Passed 2026-05-16

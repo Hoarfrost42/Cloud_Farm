@@ -43,13 +43,14 @@ scripts/simulate-weather-strategies.mjs
 scripts/simulate-weather-reactor.mjs
 ```
 
-`simulate-weather-strategies.mjs` 是当前 v12 调优主脚本，覆盖：
+`simulate-weather-strategies.mjs` 是当前 v13 调优主脚本，覆盖：
 
-- `guided-human`：按当前 UI 目标理解购买；
-- `roi-greedy-45s`：短线 ROI 熟练玩家；
-- `roi-greedy-180s`：更长期 ROI 玩家；
-- `comfort-first`：优先舒适和明确自动增长；
-- `bad-but-plausible`：过度强化早期按钮、较晚补生产者链的低效路线。
+- `guided-human`：按 UI 主线推进；
+- `roi-greedy`：本轮升级按立即收益/成本挑选；
+- `comfort-first`：优先自动化和保留升级；
+- `bad-but-plausible`：偏爱显眼按钮、较晚补中层图谱。
+
+`simulate-weather-reactor.mjs` 是旧的单路线脚本，尚未更新为 v13 验收口径；后续判断曲线时优先使用 `simulate-weather-strategies.mjs`。
 
 旧 `simulate-ten-minute.mjs` 已归档到 `archive/legacy-v0-pixi-phaser/scripts/`，不应作为天气反应堆平衡依据。
 
@@ -95,21 +96,27 @@ archive/legacy-v0-pixi-phaser/root/cloud_island_harness_development_manual (1).m
 archive/legacy-v0-pixi-phaser/docs/
 ```
 
-## 4. v13 前推荐顺序
+## 4. v13 当前状态
 
-1. 改进模拟器策略与日志。
-2. 修正第一次季风完整试玩中的真实问题。
-3. 对 v12 第一季风前做小步调优。
-4. 接入 v13 的 log-safe tick 与 `bestWeatherExp`。
-5. 添加 v13 主线里程碑表。
+当前主线已实现 v13 完整切片：
 
-## 5. v13 开发状态
+```text
+雨阶 -> 季风 -> 风暴前线 -> 气候改写 -> 天空心脏
+```
 
-已添加 `src/game/economy/logNumbers.ts`，提供 `log10Safe`、`pow10Clamped`、`logSumExp10` 等工具。
+关键新增：
 
-当前状态：
+- `logNumbers.ts` 已接入 `runTick()`。
+- `bestWeatherExp` 已加入状态，用于历史最高展示和终局进度。
+- `MAINLINE_MILESTONES` 已取代旧的单季风目标增长。
+- `resets.ts` 已包含雨阶、季风、风暴前线、气候改写、天空心脏脉冲。
+- `upgrades.ts` 已包含云核天赋、气压升级、风暴图谱、气候法则。
+- `App.tsx` 已接入 v13 UI、公式摘要和买前/买后速率预览。
 
-- 工具已导出；
-- 尚未接入 `runTick()`；
-- 尚未添加 `bestWeatherExp`；
-- 尚未改变 v12 实际数值行为。
+最新交接文档：
+
+```text
+docs/weather-reactor-v13-implementation-summary.md
+```
+
+下一轮重点是调参，不是继续补大结构。

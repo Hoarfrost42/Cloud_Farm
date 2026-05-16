@@ -1,7 +1,8 @@
-import type { ResourceKey } from "./types.ts";
+import type { MainlineMilestone, ResourceKey } from "./types.ts";
 
-export const SAVE_KEY = "cloud-island-weather-reactor-v12-lab-formula-c";
-export const ECONOMY_VERSION_LABEL = "Batch 1 / economy v12 lab formula C";
+export const SAVE_KEY = "cloud-island-weather-reactor-v13-complete-slice";
+export const LEGACY_SAVE_KEY = "cloud-island-weather-reactor-v12-lab-formula-c";
+export const ECONOMY_VERSION_LABEL = "v13 / Post-Monsoon Complete Slice";
 
 export const BASE_CLICK_WEATHER = 1;
 export const CLOUD_TOUCH_WEATHER_MULTIPLIER = 5;
@@ -31,6 +32,12 @@ export const BASE_MONSOON_WEATHER_TARGET = 100000000000000000000;
 export const MONSOON_TARGET_GROWTH = 10;
 export const SKY_HEART_CYCLE_TARGET = 3;
 export const SKY_HEART_CORE_TARGET = 14;
+export const SKY_HEART_ENDING_EXPONENT = 308;
+export const MAX_RAIN_COMPRESSION_EXPONENT = 18;
+export const MAX_CLOUD_CORE_EXPONENT_BONUS = 24;
+export const MAX_PRESSURE_EXPONENT_BONUS = 30;
+export const MAX_STORM_EXPONENT_BONUS = 85;
+export const MAX_CLIMATE_EXPONENT_BONUS = 130;
 
 export const RESOURCE_KEYS: ResourceKey[] = ["weather", "droplets", "roots", "clouds"];
 
@@ -72,3 +79,87 @@ export const RAIN_RANK_REQUIREMENT_STEPS = [
   10000000000000000000000,
   100000000000000000000000,
 ];
+
+export const RAIN_RANK_REQUIREMENT_EXPONENTS = [
+  Math.log10(3000000),
+  7,
+  Math.log10(30000000),
+  8,
+  9,
+  11,
+  13,
+  Math.log10(3000000000000000),
+  18,
+  Math.log10(30000000000000000000),
+  20,
+  21,
+  22,
+  23,
+  25,
+  28,
+  32,
+  37,
+  43,
+  50,
+  58,
+  67,
+  77,
+  88,
+  100,
+];
+
+export const MAINLINE_MILESTONES: MainlineMilestone[] = [
+  { id: "monsoon_1", kind: "monsoon", title: "第一次季风", targetExp: 20, requiredRainRanks: 10 },
+  { id: "monsoon_2", kind: "monsoon", title: "第二次季风", targetExp: 28, requiredRainRanks: 11 },
+  { id: "monsoon_3", kind: "monsoon", title: "第三次季风", targetExp: 40, requiredRainRanks: 12 },
+  { id: "monsoon_4", kind: "monsoon", title: "第四次季风", targetExp: 55, requiredRainRanks: 13 },
+  {
+    id: "storm_front_1",
+    kind: "stormFront",
+    title: "第一风暴前线",
+    targetExp: 70,
+    requiredRainRanks: 14,
+    requiredMonsoonsInFront: 4,
+  },
+  { id: "monsoon_5", kind: "monsoon", title: "第五次季风", targetExp: 85, requiredRainRanks: 14 },
+  { id: "monsoon_6", kind: "monsoon", title: "第六次季风", targetExp: 100, requiredRainRanks: 15 },
+  {
+    id: "storm_front_2",
+    kind: "stormFront",
+    title: "第二风暴前线",
+    targetExp: 115,
+    requiredRainRanks: 16,
+    requiredMonsoonsInFront: 2,
+  },
+  { id: "monsoon_7", kind: "monsoon", title: "第七次季风", targetExp: 130, requiredRainRanks: 16 },
+  { id: "monsoon_8", kind: "monsoon", title: "第八次季风", targetExp: 145, requiredRainRanks: 17 },
+  {
+    id: "climate_rewrite_1",
+    kind: "climateRewrite",
+    title: "第一次气候改写",
+    targetExp: 160,
+    requiredStormFronts: 2,
+  },
+  { id: "monsoon_9", kind: "monsoon", title: "第九次季风", targetExp: 180, requiredRainRanks: 18 },
+  {
+    id: "storm_front_3",
+    kind: "stormFront",
+    title: "第三风暴前线",
+    targetExp: 205,
+    requiredRainRanks: 20,
+    requiredMonsoonsInFront: 1,
+  },
+  {
+    id: "climate_rewrite_2",
+    kind: "climateRewrite",
+    title: "第二次气候改写",
+    targetExp: 230,
+    requiredStormFronts: 3,
+  },
+  { id: "sky_pulse_1", kind: "skyPulse", title: "天空心脏脉冲 I", targetExp: 250 },
+  { id: "sky_pulse_2", kind: "skyPulse", title: "天空心脏脉冲 II", targetExp: 275 },
+  { id: "sky_pulse_3", kind: "skyPulse", title: "天空心脏脉冲 III", targetExp: 300 },
+  { id: "sky_heart", kind: "ending", title: "点燃天空心脏", targetExp: 308 },
+];
+
+export const SKY_HEART_PULSE_BONUS_EXPONENTS = [32, 32, 16];

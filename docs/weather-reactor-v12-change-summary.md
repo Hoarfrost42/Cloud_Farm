@@ -1,5 +1,7 @@
 # Weather Reactor v12 改动总表
 
+> 2026-05-16 更新：当前主线已进入 `v13 / Post-Monsoon Complete Slice`。最新实现状态与后续交接请优先阅读 `docs/weather-reactor-v13-implementation-summary.md`。本文仍保留为 v12 Formula C、第一季风前调参和历史决策记录。
+
 更新时间：2026-05-15  
 目录：`F:\Cloud_Farm_v12_lab`  
 当前版本：`Batch 1 / economy v12 lab formula C`  
