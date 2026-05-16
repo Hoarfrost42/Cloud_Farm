@@ -53,6 +53,7 @@ import {
 const STEP_SECONDS = 1;
 const MAX_SECONDS = 12 * 60 * 60;
 const QUIET_WARNING_SECONDS = 45 * 60;
+const MIN_MAJOR_STAGE_SECONDS = 25 * 60;
 const MAX_ACTIONS_PER_SECOND = 12;
 const RANK_MILESTONES = [1, 3, 6, 8, 10, 14, 16, 20, 25];
 const RUN_UPGRADE_IDS = UPGRADE_DEFINITIONS.map((upgrade) => upgrade.id);
@@ -98,10 +99,21 @@ const PROGRESS_MILESTONES = [
   { id: "secondStormFront", label: "第二风暴前线", isReached: (state) => state.totalStormFronts >= 2 },
   { id: "thirdStormFront", label: "第三风暴前线", isReached: (state) => state.totalStormFronts >= 3 },
   { id: "firstClimateRewrite", label: "第一次气候改写", isReached: (state) => state.totalClimateRewrites >= 1 },
+  { id: "secondClimateRewrite", label: "第二次气候改写", isReached: (state) => state.totalClimateRewrites >= 2 },
   { id: "skyPulse1", label: "天空心脏脉冲 1", isReached: (state) => state.skyHeartPulseLevel >= 1 },
   { id: "skyPulse2", label: "天空心脏脉冲 2", isReached: (state) => state.skyHeartPulseLevel >= 2 },
   { id: "skyPulse3", label: "天空心脏脉冲 3", isReached: (state) => state.skyHeartPulseLevel >= 3 },
   { id: "skyHeart", label: "天空心脏点燃", isReached: (state) => state.skyHeartAwakened },
+];
+
+const MAJOR_STAGE_DURATION_WINDOWS = [
+  { id: "startToMonsoon1", label: "开始到第一次季风", start: null, end: "firstMonsoon" },
+  { id: "monsoon1ToStorm1", label: "第一次季风到第一风暴", start: "firstMonsoon", end: "firstStormFront" },
+  { id: "storm1ToStorm2", label: "第一风暴到第二风暴", start: "firstStormFront", end: "secondStormFront" },
+  { id: "storm2ToClimate1", label: "第二风暴到第一次气候改写", start: "secondStormFront", end: "firstClimateRewrite" },
+  { id: "climate1ToStorm3", label: "第一次气候改写到第三风暴", start: "firstClimateRewrite", end: "thirdStormFront" },
+  { id: "storm3ToClimate2", label: "第三风暴到第二次气候改写", start: "thirdStormFront", end: "secondClimateRewrite" },
+  { id: "climate2ToEnding", label: "第二次气候改写到终局", start: "secondClimateRewrite", end: "skyHeart" },
 ];
 
 const CANONICAL_STORM_ORDER = ["frontMemory", "thunderUpdraft", "rainOverload", "stormBatch", "windEyeRelic", "frontScar", "stormPrism"];
@@ -1593,6 +1605,7 @@ function evaluateBalanceGates(result) {
     pushWindowGate(gates, "fail", `${result.name} ending window`, result.skyHeartAt, 2 * 60 * 60, 270 * 60);
     pushQuietGate(gates, "fail", `${result.name} quiet time`, result.maxQuietSeconds, QUIET_WARNING_SECONDS);
     pushStageWindowWarnings(gates, result);
+    pushMajorStageDurationWarnings(gates, result);
     return gates;
   }
 
@@ -1600,6 +1613,7 @@ function evaluateBalanceGates(result) {
     pushWindowGate(gates, "warning", "guided-human ending window", result.skyHeartAt, 2 * 60 * 60, 270 * 60);
     pushQuietGate(gates, "warning", "guided-human quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
     pushStageWindowWarnings(gates, result);
+    pushMajorStageDurationWarnings(gates, result);
     return gates;
   }
 
@@ -1607,6 +1621,7 @@ function evaluateBalanceGates(result) {
     pushLatestGate(gates, "fail", "comfort ending latest", result.skyHeartAt, 270 * 60);
     pushEarliestGate(gates, "warning", "comfort ending too fast", result.skyHeartAt, 2 * 60 * 60);
     pushQuietGate(gates, "fail", "comfort quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
+    pushMajorStageDurationWarnings(gates, result);
     return gates;
   }
 
@@ -1614,11 +1629,13 @@ function evaluateBalanceGates(result) {
     pushLatestGate(gates, "fail", "bad route reaches climate", result.milestoneAt.firstClimateRewrite, 6 * 60 * 60);
     pushQuietGate(gates, "fail", "bad route quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
     pushLatestGate(gates, "warning", "bad route ending latest", result.skyHeartAt, 270 * 60);
+    pushMajorStageDurationWarnings(gates, result);
     return gates;
   }
 
   if (result.name === "roi-greedy") {
     pushEarliestGate(gates, "warning", "roi-greedy exposes fast ending", result.skyHeartAt, 2 * 60 * 60);
+    pushMajorStageDurationWarnings(gates, result);
     if (!result.skyHeartAt) {
       gates.push({ status: "warning", label: "roi-greedy ending", detail: "压力路线未通关，仅报告不阻断。" });
     }
@@ -1629,11 +1646,13 @@ function evaluateBalanceGates(result) {
     pushLatestGate(gates, "warning", "new player reaches climate", result.milestoneAt.firstClimateRewrite, 6 * 60 * 60);
     pushEarliestGate(gates, "warning", "new player ending too fast", result.skyHeartAt, 120 * 60);
     pushQuietGate(gates, "warning", "new player quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
+    pushMajorStageDurationWarnings(gates, result);
   }
 
   if (result.name === "misled-storm-player") {
     pushLatestGate(gates, "warning", "misled storm reaches storm2", result.milestoneAt.secondStormFront, 6 * 60 * 60);
     pushQuietGate(gates, "warning", "misled storm quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
+    pushMajorStageDurationWarnings(gates, result);
     if (!hasStormTrunk(result.state)) {
       gates.push({
         status: "warning",
@@ -1650,6 +1669,36 @@ function pushStageWindowWarnings(gates, result) {
   for (const window of STAGE_WINDOWS) {
     pushWindowGate(gates, "warning", window.label, getStageTime(result, window.id), window.min, window.max);
   }
+}
+
+function pushMajorStageDurationWarnings(gates, result) {
+  for (const window of MAJOR_STAGE_DURATION_WINDOWS) {
+    const duration = getMajorStageDuration(result, window);
+    if (duration === null) {
+      gates.push({
+        status: "warning",
+        label: `${window.label}阶段时长`,
+        detail: `未达成完整阶段，目标至少 ${formatTime(MIN_MAJOR_STAGE_SECONDS)}。`,
+      });
+      continue;
+    }
+
+    gates.push({
+      status: duration >= MIN_MAJOR_STAGE_SECONDS ? "pass" : "warning",
+      label: `${window.label}阶段时长`,
+      detail: `${formatTime(duration)}，目标至少 ${formatTime(MIN_MAJOR_STAGE_SECONDS)}。`,
+    });
+  }
+}
+
+function getMajorStageDuration(result, window) {
+  const start = window.start === null ? 0 : getStageTime(result, window.start);
+  const end = getStageTime(result, window.end);
+  if (start === null || start === undefined || end === null || end === undefined || end < start) {
+    return null;
+  }
+
+  return end - start;
 }
 
 function getStageTime(result, stageId) {
@@ -1781,15 +1830,13 @@ function formatMilestoneTimeline(result) {
 }
 
 function formatStageDurations(result) {
-  const entries = [
-    ["start->monsoon1", null, result.milestoneAt.firstMonsoon],
-    ["monsoon1->storm1", result.milestoneAt.firstMonsoon, result.milestoneAt.firstStormFront],
-    ["storm1->storm2", result.milestoneAt.firstStormFront, result.milestoneAt.secondStormFront],
-    ["storm2->climate1", result.milestoneAt.secondStormFront, result.milestoneAt.firstClimateRewrite],
-    ["climate1->ending", result.milestoneAt.firstClimateRewrite, result.skyHeartAt],
-  ];
-
-  return entries.map(([label, start, end]) => `${label} ${formatDuration(start, end)}`).join(" | ");
+  return MAJOR_STAGE_DURATION_WINDOWS
+    .map((window) => {
+      const start = window.start === null ? 0 : getStageTime(result, window.start);
+      const end = getStageTime(result, window.end);
+      return `${window.id} ${formatDuration(start, end)}`;
+    })
+    .join(" | ");
 }
 
 function formatDuration(start, end) {
