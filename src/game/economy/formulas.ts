@@ -7,20 +7,35 @@ import {
   CLOUD_TOUCH_WEATHER_MULTIPLIER,
   DROPLET_LOG_DIVISOR,
   DROPLET_SEED_BASE_RATE,
+  FRONT_ECHO_BONUS_EXPONENT,
+  FRONT_ECHO_CLIMATE_BONUS_EXPONENT,
+  FRONT_ECHO_SKY_BONUS_EXPONENT,
   DROPLET_LOG_MULTIPLIER_STEP,
+  HEAVY_RAIN_LATE_SOFT_CAP_SCALE,
+  HEAVY_RAIN_LATE_SOFT_CAP_START,
   HEAVY_RAIN_WEATHER_MULTIPLIER,
+  HEAVY_RAIN_SOFT_CAP_SCALE,
+  HEAVY_RAIN_SOFT_CAP_START,
   MAX_CLIMATE_EXPONENT_BONUS,
   MAX_CLOUD_CORE_EXPONENT_BONUS,
   MAX_PRESSURE_EXPONENT_BONUS,
   MAX_STORM_EXPONENT_BONUS,
   MONSOON_FOCUS_PRODUCER_BONUS,
+  MONSOON_PULL_LATE_SOFT_CAP_SCALE,
+  MONSOON_PULL_LATE_SOFT_CAP_START,
   MONSOON_PULL_WEATHER_MULTIPLIER,
+  MONSOON_PULL_SOFT_CAP_SCALE,
+  MONSOON_PULL_SOFT_CAP_START,
   PRODUCER_STOCK_LOG_DIVISOR,
   PRODUCER_STOCK_LOG_MULTIPLIER_STEP,
   RAIN_RANK_BASE_BONUS,
   ROOT_WAKE_BASE_RATE,
   ROOT_WAKE_RATE_MULTIPLIER,
+  WEATHER_AMPLIFIER_LATE_SOFT_CAP_SCALE,
+  WEATHER_AMPLIFIER_LATE_SOFT_CAP_START,
   WEATHER_AMPLIFIER_MULTIPLIER,
+  WEATHER_AMPLIFIER_SOFT_CAP_SCALE,
+  WEATHER_AMPLIFIER_SOFT_CAP_START,
   WIND_EYE_BASE_RATE,
   WIND_EYE_RATE_MULTIPLIER,
   SKY_HEART_PULSE_BONUS_EXPONENTS,
@@ -66,9 +81,33 @@ export function getPassiveWeatherGain(state: WeatherReactorState) {
   const baseWeatherPower = getDropletSeedWeatherRate(state.upgrades.dropletSeed);
   const dropletMultiplier = getDropletWeatherMultiplier(state.resources.droplets, state);
   const rankWeatherMultiplier = getRainRankWeatherMultiplier(state);
-  const weatherAmplifierMultiplier = Math.pow(WEATHER_AMPLIFIER_MULTIPLIER, state.upgrades.weatherAmplifier);
-  const heavyRainMultiplier = Math.pow(HEAVY_RAIN_WEATHER_MULTIPLIER, state.upgrades.heavyRain);
-  const monsoonPullMultiplier = Math.pow(getMonsoonPullMultiplier(state), state.upgrades.monsoonPull);
+  const weatherAmplifierLevel = getDirectMultiplierSoftCappedLevel(
+    state,
+    state.upgrades.weatherAmplifier,
+    WEATHER_AMPLIFIER_SOFT_CAP_START,
+    WEATHER_AMPLIFIER_SOFT_CAP_SCALE,
+    WEATHER_AMPLIFIER_LATE_SOFT_CAP_START,
+    WEATHER_AMPLIFIER_LATE_SOFT_CAP_SCALE,
+  );
+  const heavyRainLevel = getDirectMultiplierSoftCappedLevel(
+    state,
+    state.upgrades.heavyRain,
+    HEAVY_RAIN_SOFT_CAP_START,
+    HEAVY_RAIN_SOFT_CAP_SCALE,
+    HEAVY_RAIN_LATE_SOFT_CAP_START,
+    HEAVY_RAIN_LATE_SOFT_CAP_SCALE,
+  );
+  const monsoonPullLevel = getDirectMultiplierSoftCappedLevel(
+    state,
+    state.upgrades.monsoonPull,
+    MONSOON_PULL_SOFT_CAP_START,
+    MONSOON_PULL_SOFT_CAP_SCALE,
+    MONSOON_PULL_LATE_SOFT_CAP_START,
+    MONSOON_PULL_LATE_SOFT_CAP_SCALE,
+  );
+  const weatherAmplifierMultiplier = Math.pow(WEATHER_AMPLIFIER_MULTIPLIER, weatherAmplifierLevel);
+  const heavyRainMultiplier = Math.pow(HEAVY_RAIN_WEATHER_MULTIPLIER, heavyRainLevel);
+  const monsoonPullMultiplier = Math.pow(getMonsoonPullMultiplier(state), monsoonPullLevel);
   const stormMultiplier = 1 + state.upgrades.stormMemory * Math.max(1, state.totalMonsoonCycles) * 0.12;
 
   return (
@@ -80,6 +119,39 @@ export function getPassiveWeatherGain(state: WeatherReactorState) {
     * monsoonPullMultiplier
     * stormMultiplier
   );
+}
+
+/**
+ * Applies staged damping to repeated direct-multiplier purchases.
+ */
+export function getDirectMultiplierSoftCappedLevel(
+  state: WeatherReactorState,
+  level: number,
+  start: number,
+  scale: number,
+  lateStart: number,
+  lateScale: number,
+) {
+  if (state.totalMonsoonCycles <= 0 || state.skyHeartPulseLevel >= 3) {
+    return level;
+  }
+
+  if (state.totalStormFronts <= 1) {
+    return getSoftCappedLevel(level, start, scale);
+  }
+
+  return getSoftCappedLevel(level, lateStart, lateScale);
+}
+
+/**
+ * Keeps early upgrade levels exact, then converts repeated purchases into a smoother square-root tail.
+ */
+export function getSoftCappedLevel(level: number, start: number, scale: number) {
+  if (level <= start) {
+    return level;
+  }
+
+  return Math.min(level, start + Math.sqrt(level - start) * scale);
 }
 
 /**
@@ -254,13 +326,33 @@ export function getPressureExponentBonus(state: WeatherReactorState) {
  */
 export function getStormCellExponentBonus(state: WeatherReactorState) {
   const stormWeavingCapBonus = state.climateLaws.stormWeaving > 0 ? 15 : 0;
+  const frontEchoBonus = getFrontEchoExponentBonus(state);
+  const echoBypassesCap = state.totalStormFronts >= 3 && state.totalClimateRewrites >= 1;
+  const cappedEchoBonus = echoBypassesCap ? 0 : frontEchoBonus;
+  const uncappedEchoBonus = echoBypassesCap ? frontEchoBonus : 0;
   return Math.min(
     MAX_STORM_EXPONENT_BONUS + stormWeavingCapBonus,
     1.6 * state.totalStormCells
+      + cappedEchoBonus
       + 2.2 * state.stormUpgrades.thunderUpdraft
       + 3.5 * state.stormUpgrades.stormPrism
       + Math.min(12, 0.035 * state.totalStormCells * state.totalCloudCores),
-  );
+  ) + uncappedEchoBonus;
+}
+
+/**
+ * Returns the recoverable front-echo exponent for the current storm front.
+ */
+export function getFrontEchoExponentBonus(state: WeatherReactorState) {
+  if (state.totalClimateRewrites >= 2 && state.skyHeartPulseLevel <= 0) {
+    return state.frontEchoesThisFront * FRONT_ECHO_SKY_BONUS_EXPONENT;
+  }
+
+  if (state.totalStormFronts >= 3 && state.totalClimateRewrites >= 1) {
+    return state.frontEchoesThisFront * FRONT_ECHO_CLIMATE_BONUS_EXPONENT;
+  }
+
+  return state.frontEchoesThisFront * FRONT_ECHO_BONUS_EXPONENT;
 }
 
 /**

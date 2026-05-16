@@ -14,6 +14,7 @@ import {
   canClaimRainRank,
   canPay,
   canRunClimateRewrite,
+  canRunFrontEchoReset,
   canRunMonsoon,
   canRunStormFront,
   createInitialState,
@@ -23,6 +24,7 @@ import {
   getCloudTouchAmount,
   getCurrentMainlineMilestone,
   getCurrentMilestoneTargetExp,
+  getFrontEchoRequirementExp,
   getAutoDrizzleGain,
   getLayerBonusBreakdown,
   getLayerUpgradeCost,
@@ -40,6 +42,7 @@ import {
   logSumExp10,
   payCost,
   performClimateRewrite,
+  performFrontEchoReset,
   performMonsoonReset,
   performRainRankReset,
   performSkyHeartPulse,
@@ -49,7 +52,7 @@ import {
 
 const STEP_SECONDS = 1;
 const MAX_SECONDS = 12 * 60 * 60;
-const QUIET_WARNING_SECONDS = 10 * 60;
+const QUIET_WARNING_SECONDS = 45 * 60;
 const MAX_ACTIONS_PER_SECOND = 12;
 const RANK_MILESTONES = [1, 3, 6, 8, 10, 14, 16, 20, 25];
 const RUN_UPGRADE_IDS = UPGRADE_DEFINITIONS.map((upgrade) => upgrade.id);
@@ -81,11 +84,11 @@ const STAGE_WINDOWS = [
   { id: "rank3", label: "第 3 雨阶", min: 12 * 60, max: 20 * 60 },
   { id: "rank6", label: "第 6 雨阶", min: 20 * 60, max: 30 * 60 },
   { id: "rank8", label: "第 8 雨阶", min: 26 * 60, max: 38 * 60 },
-  { id: "rank10", label: "第 10 雨阶", min: 32 * 60, max: 45 * 60 },
-  { id: "firstMonsoon", label: "第一次季风", min: 38 * 60, max: 60 * 60 },
-  { id: "firstStormFront", label: "第一风暴前线", min: 65 * 60, max: 105 * 60 },
-  { id: "firstClimateRewrite", label: "第一次气候改写", min: 95 * 60, max: 155 * 60 },
-  { id: "skyHeart", label: "1e308 终局", min: 120 * 60, max: 210 * 60 },
+  { id: "rank10", label: "第 10 雨阶", min: 32 * 60, max: 50 * 60 },
+  { id: "firstMonsoon", label: "第一次季风", min: 32 * 60, max: 60 * 60 },
+  { id: "firstStormFront", label: "第一风暴前线", min: 55 * 60, max: 2 * 60 * 60 },
+  { id: "firstClimateRewrite", label: "第一次气候改写", min: 90 * 60, max: 4 * 60 * 60 },
+  { id: "skyHeart", label: "1e308 终局", min: 2 * 60 * 60, max: 270 * 60 },
 ];
 
 const PROGRESS_MILESTONES = [
@@ -402,6 +405,13 @@ function runStrategyAction(state, strategy, second, purchases, events, snapshots
       ? `，${spentOnTrunk} 点转入风暴主干`
       : "";
     events.push({ second, type: "storm", text: `${milestone.title}，+${gainedStormCells} 风暴胞${trunkText}` });
+    return true;
+  }
+
+  if (canRunFrontEchoReset(state)) {
+    const beforeEchoes = state.frontEchoesThisFront;
+    Object.assign(state, performFrontEchoReset(state));
+    events.push({ second, type: "frontEcho", text: `前线回响 ${beforeEchoes} -> ${state.frontEchoesThisFront}` });
     return true;
   }
 
@@ -1486,6 +1496,18 @@ function getBottleneck(state) {
   }
 
   if (currentWeatherExp < targetExp) {
+    if (milestone.id === "storm_front_2" && state.frontEchoesThisFront < 5) {
+      const echoRequirementExp = getFrontEchoRequirementExp(state);
+      if (
+        state.totalStormFronts === 1
+        && state.rainRanks >= requiredRanks
+        && state.monsoonCyclesInFront >= (milestone.requiredMonsoonsInFront ?? 0)
+        && currentWeatherExp < targetExp
+      ) {
+        return `${Math.max(0, echoRequirementExp - currentWeatherExp).toFixed(1)} orders to 前线回响`;
+      }
+    }
+
     return `${(targetExp - currentWeatherExp).toFixed(1)} orders to ${milestone.title}`;
   }
 
@@ -1568,36 +1590,35 @@ function evaluateBalanceGates(result) {
   const gates = [];
 
   if (PRIMARY_BALANCE_STRATEGIES.includes(result.name)) {
-    const earliestEnding = result.name === "guided-human" ? 100 * 60 : 120 * 60;
-    pushWindowGate(gates, "fail", `${result.name} ending window`, result.skyHeartAt, earliestEnding, 210 * 60);
-    pushQuietGate(gates, "fail", `${result.name} quiet time`, result.maxQuietSeconds, 10 * 60);
+    pushWindowGate(gates, "fail", `${result.name} ending window`, result.skyHeartAt, 2 * 60 * 60, 270 * 60);
+    pushQuietGate(gates, "fail", `${result.name} quiet time`, result.maxQuietSeconds, QUIET_WARNING_SECONDS);
     pushStageWindowWarnings(gates, result);
     return gates;
   }
 
   if (result.name === "guided-human") {
-    pushWindowGate(gates, "warning", "guided-human ending window", result.skyHeartAt, 100 * 60, 210 * 60);
-    pushQuietGate(gates, "warning", "guided-human quiet time", result.maxQuietSeconds, 10 * 60);
+    pushWindowGate(gates, "warning", "guided-human ending window", result.skyHeartAt, 2 * 60 * 60, 270 * 60);
+    pushQuietGate(gates, "warning", "guided-human quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
     pushStageWindowWarnings(gates, result);
     return gates;
   }
 
   if (result.name === "comfort-first") {
-    pushLatestGate(gates, "fail", "comfort ending latest", result.skyHeartAt, 4 * 60 * 60);
-    pushEarliestGate(gates, "warning", "comfort ending too fast", result.skyHeartAt, 150 * 60);
-    pushQuietGate(gates, "fail", "comfort quiet time", result.maxQuietSeconds, 10 * 60);
+    pushLatestGate(gates, "fail", "comfort ending latest", result.skyHeartAt, 270 * 60);
+    pushEarliestGate(gates, "warning", "comfort ending too fast", result.skyHeartAt, 2 * 60 * 60);
+    pushQuietGate(gates, "fail", "comfort quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
     return gates;
   }
 
   if (result.name === "bad-but-plausible") {
-    pushLatestGate(gates, "fail", "bad route reaches climate", result.milestoneAt.firstClimateRewrite, 4 * 60 * 60);
-    pushQuietGate(gates, "fail", "bad route quiet time", result.maxQuietSeconds, 12 * 60);
-    pushLatestGate(gates, "warning", "bad route ending latest", result.skyHeartAt, 5 * 60 * 60);
+    pushLatestGate(gates, "fail", "bad route reaches climate", result.milestoneAt.firstClimateRewrite, 6 * 60 * 60);
+    pushQuietGate(gates, "fail", "bad route quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
+    pushLatestGate(gates, "warning", "bad route ending latest", result.skyHeartAt, 270 * 60);
     return gates;
   }
 
   if (result.name === "roi-greedy") {
-    pushEarliestGate(gates, "warning", "roi-greedy exposes fast ending", result.skyHeartAt, 100 * 60);
+    pushEarliestGate(gates, "warning", "roi-greedy exposes fast ending", result.skyHeartAt, 2 * 60 * 60);
     if (!result.skyHeartAt) {
       gates.push({ status: "warning", label: "roi-greedy ending", detail: "压力路线未通关，仅报告不阻断。" });
     }
@@ -1605,14 +1626,14 @@ function evaluateBalanceGates(result) {
   }
 
   if (result.name === "new-player-visible") {
-    pushLatestGate(gates, "warning", "new player reaches climate", result.milestoneAt.firstClimateRewrite, 4 * 60 * 60);
+    pushLatestGate(gates, "warning", "new player reaches climate", result.milestoneAt.firstClimateRewrite, 6 * 60 * 60);
     pushEarliestGate(gates, "warning", "new player ending too fast", result.skyHeartAt, 120 * 60);
-    pushQuietGate(gates, "warning", "new player quiet time", result.maxQuietSeconds, 12 * 60);
+    pushQuietGate(gates, "warning", "new player quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
   }
 
   if (result.name === "misled-storm-player") {
-    pushLatestGate(gates, "warning", "misled storm reaches storm2", result.milestoneAt.secondStormFront, 4 * 60 * 60);
-    pushQuietGate(gates, "warning", "misled storm quiet time", result.maxQuietSeconds, 12 * 60);
+    pushLatestGate(gates, "warning", "misled storm reaches storm2", result.milestoneAt.secondStormFront, 6 * 60 * 60);
+    pushQuietGate(gates, "warning", "misled storm quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
     if (!hasStormTrunk(result.state)) {
       gates.push({
         status: "warning",

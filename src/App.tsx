@@ -22,6 +22,7 @@ import {
   canClaimRainRank as canClaimRainRankState,
   canPay,
   canRunClimateRewrite,
+  canRunFrontEchoReset,
   canRunMonsoon as canRunMonsoonState,
   canRunStormFront,
   createInitialState,
@@ -37,6 +38,9 @@ import {
   getCloudTouchAmount,
   getCurrentMainlineMilestone,
   getCurrentMilestoneTargetExp,
+  getFrontEchoGain,
+  getFrontEchoMaxCount,
+  getFrontEchoRequirementExp,
   getLayerBonusBreakdown,
   getLayerUpgradeCost,
   getMonsoonWeatherTarget,
@@ -59,6 +63,7 @@ import {
   payCost,
   pow10Clamped,
   performClimateRewrite,
+  performFrontEchoReset,
   performMonsoonReset,
   performRainRankReset,
   performSkyHeartPulse,
@@ -126,6 +131,7 @@ export default function App() {
   const canClaimRainRank = canClaimRainRankState(state);
   const canRunMonsoon = canRunMonsoonState(state);
   const canRunCurrentStormFront = canRunStormFront(state);
+  const canRunCurrentFrontEcho = canRunFrontEchoReset(state);
   const canRunCurrentClimateRewrite = canRunClimateRewrite(state);
   const canBuySkyHeartPulse = canBuySkyHeartPulseState(state);
   const canAwakenSkyHeart = canAwakenSkyHeartState(state);
@@ -134,6 +140,10 @@ export default function App() {
   const cloudCoreGain = getCloudCoreGain(state);
   const stormCellGain = getStormCellGain(state);
   const climateThreadGain = getClimateThreadGain(state);
+  const frontEchoGain = getFrontEchoGain(state);
+  const frontEchoMaxCount = getFrontEchoMaxCount(state);
+  const frontEchoRequirementExp = getFrontEchoRequirementExp(state);
+  const showFrontEchoCard = ["storm_front_2", "climate_rewrite_2", "sky_pulse_1"].includes(currentMilestone.id);
   const clickCooldownSeconds = getClickCooldownSeconds(state);
   const canTouchCloud = !isPaused && state.clickCooldownRemaining <= 0;
   const cloudCooldownProgress = canTouchCloud
@@ -340,6 +350,24 @@ export default function App() {
       return {
         ...nextState,
         notice: createNotice("success", `风暴前线完成，获得 ${gainedStormCells} 风暴胞。${firstStormText}`),
+      };
+    });
+  }
+
+  function runFrontEchoReset() {
+    setState((currentState) => {
+      if (!canRunFrontEchoReset(currentState)) {
+        return {
+          ...currentState,
+          notice: createNotice("warning", "还没有形成可回响的前线压力。"),
+        };
+      }
+
+      const nextState = performFrontEchoReset(currentState);
+      const gainedEchoes = nextState.frontEchoesThisFront - currentState.frontEchoesThisFront;
+      return {
+        ...nextState,
+        notice: createNotice("success", `前线回响完成，增加 ${gainedEchoes} 层，当前达到 ${nextState.frontEchoesThisFront} 层。`),
       };
     });
   }
@@ -699,6 +727,26 @@ export default function App() {
             执行风暴前线
           </button>
         </section>
+
+        {showFrontEchoCard && (
+          <section className={canRunCurrentFrontEcho ? "monsoon-card monsoon-card--ready" : "monsoon-card"}>
+            <div>
+              <span className="section-kicker">前线兜底</span>
+              <h2>前线回响</h2>
+              <p>
+                当前主线尚差一段时，达到 1e{frontEchoRequirementExp.toFixed(1)} 天气活力可进行小 reset。
+                不获得主线代币，但会按已跨过的门槛批量增加回响层数。
+              </p>
+            </div>
+            <div className="monsoon-reward">
+              <span>当前 / 可得</span>
+              <strong>{state.frontEchoesThisFront}/{frontEchoMaxCount} +{frontEchoGain}</strong>
+            </div>
+            <button type="button" disabled={!canRunCurrentFrontEcho} onClick={runFrontEchoReset}>
+              激起前线回响{frontEchoGain > 1 ? ` +${frontEchoGain}` : ""}
+            </button>
+          </section>
+        )}
 
         <section className={canRunCurrentClimateRewrite ? "monsoon-card monsoon-card--ready" : "monsoon-card"}>
           <div>

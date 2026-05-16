@@ -21,6 +21,18 @@ export const RAIN_RANK_BASE_BONUS = 1;
 export const WEATHER_AMPLIFIER_MULTIPLIER = 4;
 export const HEAVY_RAIN_WEATHER_MULTIPLIER = 3;
 export const MONSOON_PULL_WEATHER_MULTIPLIER = 100;
+export const WEATHER_AMPLIFIER_SOFT_CAP_START = 45;
+export const WEATHER_AMPLIFIER_SOFT_CAP_SCALE = 3.2;
+export const WEATHER_AMPLIFIER_LATE_SOFT_CAP_START = 75;
+export const WEATHER_AMPLIFIER_LATE_SOFT_CAP_SCALE = 4.8;
+export const HEAVY_RAIN_SOFT_CAP_START = 24;
+export const HEAVY_RAIN_SOFT_CAP_SCALE = 3;
+export const HEAVY_RAIN_LATE_SOFT_CAP_START = 50;
+export const HEAVY_RAIN_LATE_SOFT_CAP_SCALE = 3.8;
+export const MONSOON_PULL_SOFT_CAP_START = 14;
+export const MONSOON_PULL_SOFT_CAP_SCALE = 2;
+export const MONSOON_PULL_LATE_SOFT_CAP_START = 28;
+export const MONSOON_PULL_LATE_SOFT_CAP_SCALE = 3.2;
 export const AUTO_DRIZZLE_CLICK_CONVERSION = 0.07;
 export const MONSOON_FOCUS_PRODUCER_BONUS = 0.5;
 export const BASE_CLICK_COOLDOWN_SECONDS = 2;
@@ -38,6 +50,12 @@ export const MAX_CLOUD_CORE_EXPONENT_BONUS = 24;
 export const MAX_PRESSURE_EXPONENT_BONUS = 12;
 export const MAX_STORM_EXPONENT_BONUS = 48;
 export const MAX_CLIMATE_EXPONENT_BONUS = 70;
+export const FRONT_ECHO_TARGET_OFFSET = 25;
+export const FRONT_ECHO_REQUIREMENT_STEP = 5;
+export const FRONT_ECHO_BONUS_EXPONENT = 3.8;
+export const FRONT_ECHO_CLIMATE_BONUS_EXPONENT = 4.4;
+export const FRONT_ECHO_SKY_BONUS_EXPONENT = 6.6;
+export const MAX_FRONT_ECHOES_PER_FRONT = 5;
 
 export const STORM_TRUNK_UPGRADES = [
   { id: "frontMemory", level: 1, cost: 1 },
@@ -169,4 +187,4 @@ export const MAINLINE_MILESTONES: MainlineMilestone[] = [
   { id: "sky_heart", kind: "ending", title: "点燃天空心脏", targetExp: 308 },
 ];
 
-export const SKY_HEART_PULSE_BONUS_EXPONENTS = [15, 12, 7];
+export const SKY_HEART_PULSE_BONUS_EXPONENTS = [8, 6, 5];

@@ -147,7 +147,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     description: "把部分点击收益转为每秒自动天气活力。",
     baseCost: { weather: 10000000, roots: 1000 },
     costGrowth: 10,
-    maxLevel: 100,
+    maxLevel: 90,
   },
   {
     id: "autoRank",
@@ -573,8 +573,20 @@ export function getUpgrade(upgradeId: UpgradeId) {
  */
 export function isRunUpgradeMaxed(state: WeatherReactorState, upgrade: UpgradeDefinition | UpgradeId) {
   const resolvedUpgrade = typeof upgrade === "string" ? getUpgrade(upgrade) : upgrade;
-  return typeof resolvedUpgrade.maxLevel === "number"
-    && state.upgrades[resolvedUpgrade.id] >= resolvedUpgrade.maxLevel;
+  const maxLevel = getRunUpgradeMaxLevel(state, resolvedUpgrade);
+  return typeof maxLevel === "number" && state.upgrades[resolvedUpgrade.id] >= maxLevel;
+}
+
+/**
+ * Returns the current cap for run upgrades with stage-specific limits.
+ */
+export function getRunUpgradeMaxLevel(state: WeatherReactorState, upgrade: UpgradeDefinition | UpgradeId) {
+  const resolvedUpgrade = typeof upgrade === "string" ? getUpgrade(upgrade) : upgrade;
+  if (resolvedUpgrade.id === "monsoonPull" && state.totalStormFronts === 1) {
+    return 22;
+  }
+
+  return resolvedUpgrade.maxLevel;
 }
 
 /**
