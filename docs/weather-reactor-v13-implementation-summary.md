@@ -7,6 +7,15 @@
 
 本文记录当前 v13 代码现状。若本文与旧 v12 文档冲突，以本文为准；旧 v12 文档只作为第一季风前公式和调参历史参考。
 
+相关入口文档：
+
+```text
+README.md
+AGENTS.md
+docs/README.md
+docs/current-code-map.md
+```
+
 ## 1. 当前实现范围
 
 已按 v13 完整设计接入主线结构：
@@ -41,6 +50,7 @@
 - 结局动画或统计面板。
 - 最终平衡曲线。
 - 视觉大改或 Pixi/Phaser 恢复。
+- UI 组件拆分，当前主要仍集中在 `src/App.tsx`。
 
 ## 2. 当前代码边界
 
@@ -74,6 +84,15 @@ scripts/simulate-weather-strategies.mjs
 ```
 
 旧 `scripts/simulate-weather-reactor.mjs` 仍在仓库中，但没有更新为 v13 验收口径；后续判断曲线时优先使用 `simulate-weather-strategies.mjs`。
+
+显示与样式：
+
+```text
+src/App.tsx
+src/styles/global.css
+src/styles/app.css
+src/game/economy/format.ts
+```
 
 ## 3. 关键实现口径
 

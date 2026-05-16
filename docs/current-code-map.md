@@ -2,7 +2,14 @@
 
 更新时间：2026-05-16
 
-本文说明当前代码边界，避免旧实验文件干扰 v12 / v13 判断。
+本文说明当前代码边界，避免旧实验文件干扰 v13 判断。
+
+当前最高优先级事实源：
+
+```text
+docs/weather-reactor-v13-implementation-summary.md
+docs/README.md
+```
 
 ## 1. 当前有效主线
 
@@ -51,6 +58,15 @@ scripts/simulate-weather-reactor.mjs
 - `bad-but-plausible`：偏爱显眼按钮、较晚补中层图谱。
 
 `simulate-weather-reactor.mjs` 是旧的单路线脚本，尚未更新为 v13 验收口径；后续判断曲线时优先使用 `simulate-weather-strategies.mjs`。
+
+当前文档入口：
+
+```text
+README.md
+AGENTS.md
+docs/README.md
+docs/weather-reactor-v13-implementation-summary.md
+```
 
 旧 `simulate-ten-minute.mjs` 已归档到 `archive/legacy-v0-pixi-phaser/scripts/`，不应作为天气反应堆平衡依据。
 
@@ -119,4 +135,34 @@ archive/legacy-v0-pixi-phaser/docs/
 docs/weather-reactor-v13-implementation-summary.md
 ```
 
-下一轮重点是调参，不是继续补大结构。
+下一轮重点是调参与小步解耦，不是继续补大结构。
+
+## 5. UI 相关文件
+
+当前 UI 结构仍集中在：
+
+```text
+src/App.tsx
+src/styles/app.css
+src/styles/global.css
+```
+
+显示口径辅助分散在：
+
+```text
+src/game/economy/format.ts
+src/game/economy/constants.ts
+src/game/economy/upgrades.ts
+```
+
+后续如需解耦，优先拆：
+
+```text
+StatusPanel
+ReactorStage
+ResetCards
+UpgradePanel
+FormulaSummary
+```
+
+但调参阶段不要顺手做大规模 UI 重构。
