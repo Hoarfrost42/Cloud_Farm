@@ -32,7 +32,13 @@ src/game/economy/*
 scripts/simulate-weather-strategies.mjs
 ```
 
-旧 v0 农场路线、Pixi 画布路线、Phaser 伪 2.5D 实验仍在仓库中，但不属于当前 v12 / v13 主线。当前 TypeScript 检查边界已收窄到主线入口与 `src/game/economy/*`。
+旧 v0 农场路线、Pixi 画布路线、Phaser 伪 2.5D 实验已归档到：
+
+```text
+archive/legacy-v0-pixi-phaser/
+```
+
+这些内容只作历史参考，不属于当前 v12 / v13 主线。当前 TypeScript 检查边界已收窄到主线入口与 `src/game/economy/*`。
 
 ## 常用命令
 
@@ -56,3 +62,9 @@ http://127.0.0.1:5190
 - v13 前先保持 v12 Formula C 可验证、可模拟、可回滚。
 - 新改动先小步落地，再跑 typecheck、build、simulate。
 
+## 当前整理状态
+
+- 已建立 git baseline。
+- 已归档旧路线源码与旧路线文档。
+- 当前 `src/` 只保留 v12 / v13 主线入口、样式和 economy 内核。
+- 下一步优先改进模拟器，再进入 v12 调优和 v13 log-safe 数值层。

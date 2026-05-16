@@ -102,9 +102,15 @@ src/App.tsx
 src/game/economy/*
 ```
 
-旧 v0.1 农场路线、Pixi 画布路线、Phaser 伪 2.5D 实验仍可能留在 `src/` 下，但它们不属于当前 v12 / v13 主线。
+旧 v0.1 农场路线、Pixi 画布路线、Phaser 伪 2.5D 实验已移入：
 
-当前 `tsconfig.app.json` 已将 TypeScript 检查边界收窄到主线入口和 `src/game/economy/*`，避免旧路线残留继续影响 v12 / v13 平衡验证。后续如果要做物理归档，应优先把旧文件移出 `src/`，并确保 `npm run typecheck`、`npm run build` 仍通过。
+```text
+archive/legacy-v0-pixi-phaser/
+```
+
+它们只作为历史参考，不属于当前 v12 / v13 主线。
+
+当前 `tsconfig.app.json` 已将 TypeScript 检查边界收窄到主线入口和 `src/game/economy/*`，避免归档内容继续影响 v12 / v13 平衡验证。后续如果要恢复旧路线，应从归档目录显式恢复。
 
 ### 3.4 云层等级定位改变
 

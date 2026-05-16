@@ -2,7 +2,7 @@
 
 更新时间：2026-05-16
 
-本文用于在初始化 git 前说明当前代码边界，避免旧实验文件干扰 v12 / v13 判断。
+本文说明当前代码边界，避免旧实验文件干扰 v12 / v13 判断。
 
 ## 1. 当前有效主线
 
@@ -42,7 +42,7 @@ scripts/simulate-weather-strategies.mjs
 scripts/simulate-weather-reactor.mjs
 ```
 
-`scripts/simulate-ten-minute.mjs` 属于旧 v0 农场路线参考，不应作为天气反应堆平衡依据。
+旧 `simulate-ten-minute.mjs` 已归档到 `archive/legacy-v0-pixi-phaser/scripts/`，不应作为天气反应堆平衡依据。
 
 ## 2. 当前编译边界
 
@@ -57,39 +57,38 @@ src/game/economy/**/*.ts
 原因：
 
 - 当前主线不使用旧 `src/ui/*`、`src/game/state/*`、`src/game/systems/*`、`src/phaser/*`。
-- 旧路线仍可保留为参考，但不应继续影响 v12 / v13 的 typecheck 和构建判断。
-- 后续物理归档旧文件时，应分批移动，并在每批后运行验证命令。
+- 旧路线已移入 `archive/legacy-v0-pixi-phaser/`，不再影响 v12 / v13 的 typecheck 和构建判断。
+- 后续如需恢复旧路线，应从归档目录显式恢复，不要默认接回主线。
 
-## 3. 旧路线残留
+## 3. 旧路线归档
 
-以下目录或文件当前视为旧路线残留或历史参考：
+以下目录或文件已从主线移入归档：
 
 ```text
-src/ui/
-src/data/
-src/game/state/
-src/game/systems/
-src/game/entities/
-src/game/GameCanvas.tsx
-src/game/createPixiApp.ts
-src/game/gameLoop.ts
-src/game/sceneLayout.ts
-src/game/assets/
-src/phaser/
-cloud_island_harness_development_manual (1).md
+archive/legacy-v0-pixi-phaser/src/ui/
+archive/legacy-v0-pixi-phaser/src/data/
+archive/legacy-v0-pixi-phaser/src/game/state/
+archive/legacy-v0-pixi-phaser/src/game/systems/
+archive/legacy-v0-pixi-phaser/src/game/entities/
+archive/legacy-v0-pixi-phaser/src/game/GameCanvas.tsx
+archive/legacy-v0-pixi-phaser/src/game/createPixiApp.ts
+archive/legacy-v0-pixi-phaser/src/game/gameLoop.ts
+archive/legacy-v0-pixi-phaser/src/game/sceneLayout.ts
+archive/legacy-v0-pixi-phaser/src/game/assets/
+archive/legacy-v0-pixi-phaser/src/phaser/
+archive/legacy-v0-pixi-phaser/scripts/simulate-ten-minute.mjs
+archive/legacy-v0-pixi-phaser/root/cloud_island_harness_development_manual (1).md
 ```
 
-这些文件暂时不删除，避免在无 git 历史的情况下丢失上下文。进入 git 后再做物理归档，建议移动到：
+旧 art pass、layout debug、v0 交接、伪 2.5D 路线和旧技术说明也已归档到：
 
 ```text
-archive/legacy-v0-pixi-phaser/
+archive/legacy-v0-pixi-phaser/docs/
 ```
 
 ## 4. v13 前推荐顺序
 
-1. 初始化 git，并建立当前 v12 baseline。
-2. 物理归档旧路线残留。
-3. 改进模拟器策略与日志。
-4. 修正第一次季风完整试玩中的真实问题。
-5. 开始 v13 的 log-safe 数值层与主线里程碑表。
-
+1. 改进模拟器策略与日志。
+2. 修正第一次季风完整试玩中的真实问题。
+3. 对 v12 第一季风前做小步调优。
+4. 开始 v13 的 log-safe 数值层与主线里程碑表。
