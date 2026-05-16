@@ -42,7 +42,7 @@ docs/current-code-map.md
 - 气候改写：气候织线、气候法则、两次气候改写。
 - 天空心脏：三档脉冲与 `1e308` 完成判断。
 - UI：主线目标、层级资源、公式摘要、买前/买后速率预览。
-- 模拟器：`guided-human`、`roi-greedy`、`comfort-first`、`bad-but-plausible` 全流程输出。
+- 模拟器：`guided-human`、`patient-multiplier-human`、`roi-greedy`、`comfort-first`、`bad-but-plausible`、`new-player-visible` 全流程输出，并带 balance gates、阶段快照和最高升级等级报告。
 
 暂未做：
 
@@ -143,20 +143,40 @@ layerBonus =
 npm run simulate:weather-strategies
 ```
 
-最新结果：
+最新结果（P0-B 后）：
 
 | 策略 | 天空心脏时间 | 第一次季风 | 第一风暴前线 | 第一次气候改写 | 静默告警 |
 |---|---:|---:|---:|---:|---:|
-| guided-human | 50:07 | 33:34 | 45:17 | 48:21 | 0 |
-| roi-greedy | 45:47 | 30:57 | 41:41 | 44:12 | 0 |
-| comfort-first | 1:18:30 | 35:06 | 1:04:20 | 1:13:40 | 0 |
-| bad-but-plausible | 1:18:45 | 35:06 | 1:08:34 | 1:13:44 | 0 |
+| guided-human | 49:00 | 33:34 | 44:41 | 47:13 | 0 |
+| patient-multiplier-human | 1:22:10 | 45:29 | 1:17:26 | 1:20:24 | 0 |
+| roi-greedy | 45:48 | 30:57 | 41:42 | 44:13 | 0 |
+| comfort-first | 1:18:40 | 35:04 | 1:04:20 | 1:13:40 | 0 |
+| bad-but-plausible | 1:18:35 | 35:06 | 1:08:15 | 1:13:25 | 0 |
+| new-player-visible | 1:15:10 | 35:04 | 1:02:00 | 1:10:01 | 0 |
 
 结论：
 
 - 全流程结构已经能跑通到 `1e308`。
-- 当前曲线明显偏快，尤其季风后层级压缩过强。
-- 这不是阻塞实现的问题，但下一轮调参应优先处理。
+- P0-B 已降低季风牵引堆叠和天空心脏脉冲强度，但总时长几乎没有拉开。
+- `patient-multiplier-human` 的第一季风前节奏较接近人工试玩：第 10 雨阶 `41:41`，第一次季风 `45:29`。
+- 当前曲线仍明显偏快，爆点主要在第一风暴前线后的 storm/climate 指数层，以及中后期 `weatherAmplifier`、`climateEcho` 等本轮升级的重复堆叠。
+- `npm run simulate:weather-strategies` 当前会以退出码 1 标记 hard gate fail，这是预期的平衡诊断信号。
+
+## 4.1 P0-B 第一轮调参
+
+已改：
+
+```text
+monsoonPull.costGrowth: 10 -> 100
+getMonsoonPullMultiplier(): eyeWall 后 1000 -> 300
+SKY_HEART_PULSE_BONUS_EXPONENTS: [32, 32, 16] -> [24, 20, 10]
+```
+
+效果：
+
+- `monsoonPull` 最高等级明显下降，例如 `guided-human` 从约 Lv.291 降到 Lv.60。
+- 天空心脏脉冲总指数从 `+80 orders` 降到 `+54 orders`。
+- 终局仍过快，说明单独压季风牵引和 sky pulse 不足以解决中后期压缩。
 
 ## 5. 下一轮调参重点
 

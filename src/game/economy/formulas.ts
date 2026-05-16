@@ -296,5 +296,5 @@ export function getSkyHeartExponentBonus(state: WeatherReactorState) {
  */
 export function getMonsoonPullMultiplier(state: WeatherReactorState) {
   const hasEyeWall = state.pressureUpgrades.eyeWall > 0;
-  return hasEyeWall ? 1000 : MONSOON_PULL_WEATHER_MULTIPLIER;
+  return hasEyeWall ? 300 : MONSOON_PULL_WEATHER_MULTIPLIER;
 }

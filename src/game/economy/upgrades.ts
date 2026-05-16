@@ -18,7 +18,7 @@ import {
   formatPercentValue,
   formatRate,
 } from "./format.ts";
-import { getDropletSeedWeatherRate } from "./formulas.ts";
+import { getDropletSeedWeatherRate, getMonsoonPullMultiplier } from "./formulas.ts";
 import type {
   PermanentUpgradeDefinition,
   LayerUpgradeDefinition,
@@ -136,7 +136,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
     name: "季风牵引",
     description: "把第 10 雨阶后的被动增长牵引到季风爆发。",
     baseCost: { weather: 10000000000000000 },
-    costGrowth: 10,
+    costGrowth: 100,
     costSequence: { weather: [10000000000000000, 300000000000000000, 10000000000000000000] },
   },
   {
@@ -638,7 +638,7 @@ export function getUpgradeActionDescription(state: WeatherReactorState, upgrade:
     case "heavyRain":
       return `天气活力和点击注入变为原来的 ${formatMultiplier(HEAVY_RAIN_WEATHER_MULTIPLIER, exact)} 倍。`;
     case "monsoonPull":
-      return `天气活力被动增长变为原来的 ${formatMultiplier(MONSOON_PULL_WEATHER_MULTIPLIER, exact)} 倍。`;
+      return `天气活力被动增长变为原来的 ${formatMultiplier(getMonsoonPullMultiplier(state), exact)} 倍。`;
     case "autoDrizzle":
       return `增加 ${formatPercentValue(AUTO_DRIZZLE_CLICK_CONVERSION, exact)} 点击收益作为每秒自动天气活力。`;
     case "autoRank":

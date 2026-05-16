@@ -162,4 +162,4 @@ export const MAINLINE_MILESTONES: MainlineMilestone[] = [
   { id: "sky_heart", kind: "ending", title: "点燃天空心脏", targetExp: 308 },
 ];
 
-export const SKY_HEART_PULSE_BONUS_EXPONENTS = [32, 32, 16];
+export const SKY_HEART_PULSE_BONUS_EXPONENTS = [24, 20, 10];
