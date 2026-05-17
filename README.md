@@ -138,6 +138,22 @@ http://127.0.0.1:5190
 
 如果端口被占用，Vite 会自动使用后续端口。
 
+## 桌面目录包
+
+生成 Windows Electron 目录包：
+
+```bash
+npm run package:desktop
+```
+
+产物位置：
+
+```text
+release-desktop/win-unpacked/CloudIsland.exe
+```
+
+这里使用 Electron Builder 的 `dir` target，只生成可直接运行的 `win-unpacked` 目录，不额外生成安装器。
+
 ## 验收命令
 
 每次改动后运行：
