@@ -2565,11 +2565,11 @@ button:disabled {
   width: min(68%, 360px);
   max-height: 58%;
   object-fit: contain;
-  opacity: 0.3;
+  opacity: 0.58;
   transform: translateX(-50%);
   filter:
-    saturate(0.86)
-    drop-shadow(0 18px 26px rgba(44, 82, 105, 0.14));
+    saturate(0.96)
+    drop-shadow(0 18px 26px rgba(44, 82, 105, 0.16));
   pointer-events: none;
 }
 
@@ -2592,11 +2592,8 @@ button:disabled {
   box-shadow: none !important;
   cursor: pointer;
   transform-origin: center;
-  transition: transform 0.16s ease, filter 0.16s ease;
-}
-
-.compact-cloud-button--burst {
-  animation: cloud-button-burst 260ms ease-out;
+  transform: none !important;
+  transition: filter 0.16s ease;
 }
 
 .compact-cloud-button--burst .cloud-visual {
@@ -2612,34 +2609,17 @@ button:disabled {
   background: transparent !important;
   box-shadow: none !important;
   filter: brightness(1.02);
-  transform: translateY(-1px);
+  transform: none !important;
 }
 
 .compact-cloud-button:active {
   background: transparent !important;
   box-shadow: none !important;
+  transform: none !important;
 }
 
 .compact-cloud-button--cooling {
   filter: saturate(0.98);
-}
-
-@keyframes cloud-button-burst {
-  0% {
-    transform: scale(1);
-  }
-
-  38% {
-    transform: scale(0.965) translateY(2px);
-  }
-
-  76% {
-    transform: scale(1.025) translateY(-1px);
-  }
-
-  100% {
-    transform: scale(1);
-  }
 }
 
 @keyframes cloud-visual-burst {
