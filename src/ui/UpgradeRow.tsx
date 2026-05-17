@@ -29,6 +29,17 @@ export function UpgradeRow({
   onClick,
 }: UpgradeRowProps) {
   const actionLabel = owned ? "已拥有" : costText === "MAX" || costText === "已满级" ? "MAX" : disabled ? "等待" : actionText;
+  const stateKind = owned
+    ? "owned"
+    : ready && recommended
+      ? "recommended-ready"
+      : ready
+        ? "ready"
+        : recommended
+          ? "recommended"
+          : disabled
+            ? "disabled"
+            : "idle";
 
   return (
     <button
@@ -37,8 +48,9 @@ export function UpgradeRow({
         "classic-upgrade-row",
         ready ? "classic-upgrade-row--ready" : "",
         owned ? "classic-upgrade-row--owned" : "",
-        ready && recommended ? "classic-upgrade-row--recommended" : "",
+        recommended ? "classic-upgrade-row--recommended" : "",
       ].filter(Boolean).join(" ")}
+      data-ui-state={stateKind}
       disabled={disabled}
       onClick={onClick}
     >
