@@ -630,6 +630,9 @@ export function getRecommendedUpgradeGroupId(
   state: WeatherReactorState,
   unlockedGroups: UpgradeGroupDefinition[],
 ): UpgradeGroupId {
+  const visibleGroup = unlockedGroups.find((group) => group.upgradeIds.some((upgradeId) => (
+    isUpgradeVisible(state, upgradeId) && !isRunUpgradeMaxed(state, upgradeId)
+  )));
   const affordableGroup = unlockedGroups.find((group) => group.upgradeIds.some((upgradeId) => {
     if (!isUpgradeVisible(state, upgradeId)) {
       return false;
@@ -642,7 +645,7 @@ export function getRecommendedUpgradeGroupId(
     return canAfford(state.resources, getUpgradeCost(state, getUpgrade(upgradeId)));
   }));
 
-  return affordableGroup?.id ?? unlockedGroups[unlockedGroups.length - 1]?.id ?? "rainRank";
+  return affordableGroup?.id ?? visibleGroup?.id ?? unlockedGroups[0]?.id ?? "rainRank";
 }
 
 /**

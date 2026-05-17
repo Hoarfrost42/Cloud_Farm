@@ -2,6 +2,7 @@ export * from "./constants.ts";
 export * from "./format.ts";
 export * from "./formulas.ts";
 export * from "./logNumbers.ts";
+export * from "./progression.ts";
 export * from "./resets.ts";
 export * from "./state.ts";
 export * from "./tick.ts";

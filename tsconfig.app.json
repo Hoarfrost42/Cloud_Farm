@@ -21,6 +21,7 @@
   "include": [
     "src/main.tsx",
     "src/App.tsx",
-    "src/game/economy/**/*.ts"
+    "src/game/economy/**/*.ts",
+    "src/ui/**/*.tsx"
   ]
 }
