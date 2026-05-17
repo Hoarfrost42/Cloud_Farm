@@ -3770,7 +3770,7 @@ button:disabled {
 .classic-upgrade-row {
   position: relative;
   min-width: 0;
-  min-height: 58px;
+  min-height: 66px;
   display: grid;
   grid-template-columns: 58px minmax(128px, 0.9fr) minmax(190px, 1.2fr) minmax(86px, auto) 70px;
   gap: 8px;
@@ -3893,8 +3893,6 @@ button:disabled {
 
 .classic-upgrade-row__name strong,
 .classic-upgrade-row__name small,
-.classic-upgrade-row__effect strong,
-.classic-upgrade-row__effect small,
 .classic-upgrade-row__cost,
 .classic-upgrade-row__action,
 .classic-upgrade-row__state-mark {
@@ -3916,9 +3914,22 @@ button:disabled {
   font-weight: 800;
 }
 
+.classic-upgrade-row__effect strong,
+.classic-upgrade-row__effect small {
+  min-width: 0;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 .classic-upgrade-row__effect strong {
   color: var(--mood-ink);
   font-size: 0.74rem;
+  line-height: 1.28;
+}
+
+.classic-upgrade-row__effect small {
+  line-height: 1.26;
 }
 
 .classic-upgrade-row__cost {

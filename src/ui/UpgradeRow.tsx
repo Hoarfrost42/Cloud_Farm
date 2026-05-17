@@ -49,6 +49,7 @@ export function UpgradeRow({
           : disabled
             ? "disabled"
             : "idle";
+  const fullDescription = detailText ? `${title}。${effectText} ${detailText}` : `${title}。${effectText}`;
 
   return (
     <button
@@ -61,6 +62,7 @@ export function UpgradeRow({
       ].filter(Boolean).join(" ")}
       data-ui-state={stateKind}
       data-state-label={stateLabel}
+      title={fullDescription}
       disabled={disabled}
       onClick={onClick}
     >
