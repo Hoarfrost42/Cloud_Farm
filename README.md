@@ -71,6 +71,12 @@ release-desktop/win-unpacked/CloudIsland.exe
 
 这里使用 Electron Builder 的 `dir` target，只生成 `win-unpacked` 目录，不额外生成安装器。把整个 `win-unpacked` 文件夹发给试玩者即可运行。
 
+仓库内也保留了一份 Windows 试玩包：
+
+```text
+releases/CloudIsland-v13-playtest-win.zip
+```
+
 ## 当前版本状态
 
 ```text
