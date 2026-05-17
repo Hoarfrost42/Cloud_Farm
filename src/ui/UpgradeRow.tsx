@@ -29,6 +29,15 @@ export function UpgradeRow({
   onClick,
 }: UpgradeRowProps) {
   const actionLabel = owned ? "已拥有" : costText === "MAX" || costText === "已满级" ? "MAX" : disabled ? "等待" : actionText;
+  const stateLabel = owned
+    ? "已收录"
+    : ready
+      ? "可培育"
+      : recommended
+        ? "推荐记"
+        : disabled
+          ? "需静候"
+          : "摘记";
   const stateKind = owned
     ? "owned"
     : ready && recommended
@@ -51,9 +60,11 @@ export function UpgradeRow({
         recommended ? "classic-upgrade-row--recommended" : "",
       ].filter(Boolean).join(" ")}
       data-ui-state={stateKind}
+      data-state-label={stateLabel}
       disabled={disabled}
       onClick={onClick}
     >
+      <span className="classic-upgrade-row__state-mark" aria-hidden="true">{stateLabel}</span>
       <span className="classic-upgrade-row__name">
         <strong>{title}</strong>
         {levelText ? <small>{levelText}</small> : null}
