@@ -2576,19 +2576,21 @@ button:disabled {
 .compact-cloud-button {
   position: relative;
   z-index: 1;
-  align-self: start;
+  align-self: stretch;
   justify-self: center;
-  width: min(96%, 430px);
-  min-height: 230px;
+  width: 100%;
+  min-height: 100%;
   display: grid;
   justify-items: center;
-  align-content: center;
+  align-content: start;
   gap: 14px;
-  padding: 6px 16px 16px;
+  padding: 18px 16px 16px;
   border: 0;
   border-radius: 0;
+  color: inherit;
   background: transparent !important;
   box-shadow: none !important;
+  cursor: pointer;
   transform-origin: center;
   transition: transform 0.16s ease, filter 0.16s ease;
 }
@@ -2605,7 +2607,7 @@ button:disabled {
   animation: cloud-meter-burst 260ms ease-out;
 }
 
-.compact-cloud-button:hover:not(:disabled) {
+.compact-cloud-button:hover {
   border-color: transparent;
   background: transparent !important;
   box-shadow: none !important;
@@ -2613,13 +2615,13 @@ button:disabled {
   transform: translateY(-1px);
 }
 
-.compact-cloud-button:active:not(:disabled) {
+.compact-cloud-button:active {
   background: transparent !important;
   box-shadow: none !important;
 }
 
 .compact-cloud-button--cooling {
-  opacity: 0.96;
+  filter: saturate(0.98);
 }
 
 @keyframes cloud-button-burst {

@@ -69,6 +69,10 @@ export function ReactorStagePanel({
   function touchCloudWithFeedback() {
     const id = Date.now();
     setCloudBurstId(id);
+    if (!canTouchCloud || isPaused) {
+      return;
+    }
+
     setMistBubbles((currentBubbles) => [
       ...currentBubbles.slice(-3),
       {
@@ -98,12 +102,6 @@ export function ReactorStagePanel({
       ) : null}
 
       <section className="stage-cloud-field" aria-label="云层触点">
-        <img
-          className="stage-island-art"
-          src="/assets/art/ui/revival_island_stage.png"
-          alt=""
-          aria-hidden="true"
-        />
         <button
           type="button"
           className={[
@@ -111,9 +109,15 @@ export function ReactorStagePanel({
             canTouchCloud ? "" : "compact-cloud-button--cooling",
             cloudBurstId > 0 ? "compact-cloud-button--burst" : "",
           ].filter(Boolean).join(" ")}
-          disabled={!canTouchCloud}
+          aria-disabled={!canTouchCloud || isPaused}
           onClick={touchCloudWithFeedback}
         >
+          <img
+            className="stage-island-art"
+            src="/assets/art/ui/revival_island_stage.png"
+            alt=""
+            aria-hidden="true"
+          />
           <span className="cloud-mist-bubbles" aria-hidden="true">
             {mistBubbles.map((bubble) => (
               <i
