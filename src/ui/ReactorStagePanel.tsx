@@ -97,43 +97,45 @@ export function ReactorStagePanel({
         </div>
       ) : null}
 
-      <button
-        type="button"
-        className={[
-          "compact-cloud-button",
-          canTouchCloud ? "" : "compact-cloud-button--cooling",
-          cloudBurstId > 0 ? "compact-cloud-button--burst" : "",
-        ].filter(Boolean).join(" ")}
-        disabled={!canTouchCloud}
-        onClick={touchCloudWithFeedback}
-      >
-        <span className="cloud-mist-bubbles" aria-hidden="true">
-          {mistBubbles.map((bubble) => (
-            <i
-              key={bubble.id}
-              style={{
-                "--bubble-x": `${bubble.x}%`,
-                "--bubble-drift": `${bubble.drift}px`,
-                "--bubble-delay": `${bubble.delay}ms`,
-              } as CSSProperties}
-            >
-              {bubble.text}
-            </i>
-          ))}
-        </span>
-        <span className="cloud-visual cloud-visual--compact" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-        </span>
-        <span className="compact-cloud-button__copy">
-          <strong>{isPaused ? "天气已暂停" : canTouchCloud ? "点击云层" : "云层回拢中"}</strong>
-          <small>{canTouchCloud ? `+${displayNumber(getCloudTouchAmount(state))} 天气活力` : "准备下一次注入"}</small>
-        </span>
-        <span className="cloud-cooldown-meter" aria-hidden="true">
-          <i style={{ "--progress": cloudCooldownProgress } as CSSProperties} />
-        </span>
-      </button>
+      <section className="stage-cloud-field" aria-label="云层触点">
+        <button
+          type="button"
+          className={[
+            "compact-cloud-button",
+            canTouchCloud ? "" : "compact-cloud-button--cooling",
+            cloudBurstId > 0 ? "compact-cloud-button--burst" : "",
+          ].filter(Boolean).join(" ")}
+          disabled={!canTouchCloud}
+          onClick={touchCloudWithFeedback}
+        >
+          <span className="cloud-mist-bubbles" aria-hidden="true">
+            {mistBubbles.map((bubble) => (
+              <i
+                key={bubble.id}
+                style={{
+                  "--bubble-x": `${bubble.x}%`,
+                  "--bubble-drift": `${bubble.drift}px`,
+                  "--bubble-delay": `${bubble.delay}ms`,
+                } as CSSProperties}
+              >
+                {bubble.text}
+              </i>
+            ))}
+          </span>
+          <span className="cloud-visual cloud-visual--compact" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span className="compact-cloud-button__copy">
+            <strong>{isPaused ? "天气已暂停" : canTouchCloud ? "点击云层" : "云层回拢中"}</strong>
+            <small>{canTouchCloud ? `+${displayNumber(getCloudTouchAmount(state))} 天气活力` : "准备下一次注入"}</small>
+          </span>
+          <span className="cloud-cooldown-meter" aria-hidden="true">
+            <i style={{ "--progress": cloudCooldownProgress } as CSSProperties} />
+          </span>
+        </button>
+      </section>
 
       <section className="stage-goal-card">
         <span>当前目标</span>

@@ -2380,6 +2380,7 @@ button:disabled {
 }
 
 .reactor-stage-panel__header,
+.stage-cloud-field,
 .compact-cloud-button,
 .stage-goal-card,
 .stage-primary-action,
@@ -2454,8 +2455,29 @@ button:disabled {
     radial-gradient(ellipse at 74% 20%, rgba(185, 221, 255, 0.32), transparent 30%);
 }
 
-.compact-cloud-button {
+.stage-cloud-field {
   grid-row: 3;
+  position: relative;
+  min-width: 0;
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+}
+
+.stage-cloud-field::before {
+  position: absolute;
+  width: min(460px, 86%);
+  height: 54%;
+  border-radius: 48% 52% 42% 58%;
+  background:
+    radial-gradient(ellipse at 50% 48%, rgba(255, 255, 255, 0.24), transparent 58%),
+    radial-gradient(ellipse at 50% 88%, var(--mood-wash), transparent 58%);
+  opacity: 0.7;
+  content: "";
+  pointer-events: none;
+}
+
+.compact-cloud-button {
   position: relative;
   align-self: center;
   justify-self: center;
@@ -2864,6 +2886,16 @@ button:disabled {
   scrollbar-color: rgba(151, 117, 67, 0.28) rgba(255, 250, 239, 0.46);
 }
 
+.workbench-page-surface {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 100%;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
 .workbench-content::before,
 .workbench-content::after {
   position: absolute;
@@ -2901,7 +2933,7 @@ button:disabled {
   opacity: 0.58;
 }
 
-.workbench-content > * {
+.workbench-page-surface > * {
   position: relative;
   z-index: 1;
 }
