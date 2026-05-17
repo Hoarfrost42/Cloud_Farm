@@ -14,6 +14,17 @@
     "rainCollector": "/assets/art/png/machine/rain_collector_pixel_01.png",
     "windmillBase": "/assets/art/png/machine/windmill_base_pixel_01.png",
     "windmillBlades": "/assets/art/png/machine/windmill_blades_pixel_01.png",
-    "sunPrism": "/assets/art/png/machine/sun_prism_pixel_01.png"
+    "sunPrism": "/assets/art/png/machine/sun_prism_pixel_01.png",
+    "uiRevivalIslandStage": "/assets/art/ui/revival_island_stage.png",
+    "uiWeatherNotebookDoodles": "/assets/art/ui/weather_notebook_doodles.png",
+    "uiWeatherResourceStickers": "/assets/art/ui/weather_resource_stickers.png",
+    "uiIconWeatherVitality": "/assets/art/ui/icon_weather_vitality.png",
+    "uiIconRaindrop": "/assets/art/ui/icon_raindrop.png",
+    "uiIconRainRank": "/assets/art/ui/icon_rain_rank.png",
+    "uiIconCloudCore": "/assets/art/ui/icon_cloud_core.png",
+    "uiIconPressure": "/assets/art/ui/icon_pressure.png",
+    "uiIconStormCell": "/assets/art/ui/icon_storm_cell.png",
+    "uiIconClimateThread": "/assets/art/ui/icon_climate_thread.png",
+    "uiIconSkyHeart": "/assets/art/ui/icon_sky_heart.png"
   }
 }

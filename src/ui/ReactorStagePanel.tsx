@@ -98,6 +98,12 @@ export function ReactorStagePanel({
       ) : null}
 
       <section className="stage-cloud-field" aria-label="云层触点">
+        <img
+          className="stage-island-art"
+          src="/assets/art/ui/revival_island_stage.png"
+          alt=""
+          aria-hidden="true"
+        />
         <button
           type="button"
           className={[

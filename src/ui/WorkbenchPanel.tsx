@@ -96,6 +96,12 @@ export function WorkbenchPanel({
       <div className="workbench-body">
         <div className="workbench-content">
           <div className="workbench-page-surface" data-active-tab={activeTab}>
+            <img
+              className="workbench-page-art"
+              src="/assets/art/ui/weather_notebook_doodles.png"
+              alt=""
+              aria-hidden="true"
+            />
             {activeTab === "reactor" ? renderReactorTab(state) : null}
             {activeTab === "runUpgrades" ? (
               <RunUpgradeTab
