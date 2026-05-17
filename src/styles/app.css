@@ -1824,9 +1824,9 @@ button:disabled {
 }
 
 .incremental-shell {
-  --top-h: 52px;
+  --top-h: 60px;
   --tabs-h: 38px;
-  --footer-h: 26px;
+  --footer-h: 34px;
   --panel-bg: rgba(247, 251, 255, 0.88);
   --panel-border: rgba(53, 85, 106, 0.18);
   --ink: #29475f;
@@ -1851,10 +1851,10 @@ button:disabled {
 .top-status-bar {
   min-width: 0;
   display: grid;
-  grid-template-columns: 230px minmax(280px, 1.25fr) minmax(220px, 0.9fr) auto;
-  gap: 10px;
+  grid-template-columns: 230px minmax(320px, 1.15fr) minmax(220px, 0.9fr) auto;
+  gap: 12px;
   align-items: center;
-  padding: 5px 10px;
+  padding: 6px 12px;
   border-bottom: 1px solid rgba(53, 85, 106, 0.16);
   background: rgba(247, 251, 255, 0.88);
   box-shadow: 0 8px 20px rgba(53, 85, 106, 0.08);
@@ -1863,14 +1863,14 @@ button:disabled {
 .top-status-brand {
   min-width: 0;
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-columns: 40px minmax(0, 1fr);
   gap: 8px;
   align-items: center;
 }
 
 .top-status-brand .brand-mark {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   font-size: 0.72rem;
 }
 
@@ -1896,7 +1896,7 @@ button:disabled {
 .top-status-brand strong {
   display: block;
   color: var(--ink);
-  font-size: 0.96rem;
+  font-size: 1rem;
   line-height: 1;
 }
 
@@ -1911,26 +1911,44 @@ button:disabled {
 
 .top-status-stats {
   min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow: hidden;
+  padding: 4px 8px;
+  border: 1px solid rgba(53, 85, 106, 0.11);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(242, 251, 255, 0.86), rgba(220, 243, 255, 0.5));
 }
 
 .top-stat {
-  min-height: 40px;
+  min-width: 104px;
+  min-height: 38px;
   display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
   align-content: center;
-  gap: 1px;
-  padding: 4px 7px;
-  border: 1px solid rgba(53, 85, 106, 0.1);
-  border-radius: 8px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(247, 251, 255, 0.64));
+  gap: 2px 8px;
+  padding: 4px 8px;
+  border: 1px solid rgba(53, 85, 106, 0.09);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .top-stat strong {
+  grid-column: 2;
   color: var(--ink);
-  font-size: 0.9rem;
+  font-size: 1.02rem;
   font-variant-numeric: tabular-nums;
+}
+
+.top-stat span {
+  grid-column: 1;
+  align-self: end;
+}
+
+.top-stat small {
+  grid-column: 1 / -1;
 }
 
 .top-status-goal {
@@ -1959,8 +1977,8 @@ button:disabled {
 }
 
 .top-status-actions button {
-  min-height: 30px;
-  padding: 4px 10px;
+  min-height: 34px;
+  padding: 5px 11px;
   font-size: 0.74rem;
   font-weight: 900;
 }
@@ -2214,6 +2232,10 @@ button:disabled {
   background: rgba(53, 85, 106, 0.1);
 }
 
+.milestone-footer__meter {
+  height: 10px;
+}
+
 .stage-goal-card__meter i,
 .milestone-footer__meter i {
   position: absolute;
@@ -2334,6 +2356,7 @@ button:disabled {
 
 .run-upgrade-workbench {
   min-height: 0;
+  width: min(100%, 980px);
   display: grid;
   grid-template-columns: 210px minmax(0, 1fr);
   gap: 10px;
@@ -2419,6 +2442,7 @@ button:disabled {
 
 .upgrade-row-stack {
   min-width: 0;
+  max-width: 980px;
   display: grid;
   align-content: start;
   gap: 7px;
@@ -2602,10 +2626,10 @@ button:disabled {
 .milestone-footer {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, auto) minmax(160px, 1fr) 52px;
-  gap: 8px;
+  grid-template-columns: minmax(180px, auto) minmax(180px, 1fr) 56px;
+  gap: 10px;
   align-items: center;
-  padding: 3px 10px;
+  padding: 5px 12px;
   border-top: 1px solid rgba(53, 85, 106, 0.16);
   background: rgba(247, 251, 255, 0.88);
   color: var(--ink);
@@ -2614,7 +2638,7 @@ button:disabled {
 .milestone-footer span,
 .milestone-footer strong {
   overflow: hidden;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 1000;
   text-overflow: ellipsis;
   white-space: nowrap;

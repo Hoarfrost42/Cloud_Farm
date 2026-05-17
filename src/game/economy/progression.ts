@@ -287,7 +287,7 @@ export function getHudResourceViewModels(
  * Returns the compact stat set used by the classic top status bar.
  */
 export function getVisibleHudStats(state: WeatherReactorState, exact = false) {
-  return getHudResourceViewModels(state, exact).slice(0, 5);
+  return getHudResourceViewModels(state, exact).slice(0, 4);
 }
 
 /**
@@ -295,7 +295,7 @@ export function getVisibleHudStats(state: WeatherReactorState, exact = false) {
  */
 export function getUnlockedMainTabs(state: WeatherReactorState): MainTabDefinition[] {
   const tabs: MainTabDefinition[] = [
-    { id: "reactor", label: "反应堆" },
+    { id: "reactor", label: "概览" },
     { id: "runUpgrades", label: "本轮升级" },
     { id: "resets", label: "重置" },
     { id: "resources", label: "资源" },

@@ -122,7 +122,7 @@ export function WorkbenchPanel({
 function renderWorkbenchHeader(state: WeatherReactorState, activeTab: MainTabId) {
   const milestone = getCurrentMainlineMilestone(state);
   const title = {
-    reactor: "反应堆",
+    reactor: "概览",
     runUpgrades: "本轮升级",
     resets: "重置",
     resources: "资源",
@@ -226,7 +226,7 @@ function RunUpgradeTab({ state, selectedUpgradeGroupId, exact, onSelectUpgradeGr
               detailText={upgrade.description}
               costText={maxed ? "MAX" : formatCost(cost, exact)}
               ready={affordable}
-              disabled={!unlocked || maxed}
+              disabled={!affordable}
               recommended={recommendedIds.has(upgrade.id)}
               onClick={() => onBuyRunUpgrade(upgrade.id)}
             />
@@ -251,6 +251,7 @@ function ResetTab({ state, exact, onRunPrimaryAction }: ResetTabProps) {
     effect: string;
     cost: string;
     ready: boolean;
+    visible: boolean;
   }> = [
     {
       id: "claimRainRank",
@@ -258,6 +259,7 @@ function ResetTab({ state, exact, onRunPrimaryAction }: ResetTabProps) {
       effect: `获得 1 雨阶，当前 ${state.rainRanks} → ${state.rainRanks + 1}`,
       cost: `需要 ${formatNumber(getRainRankRequirement(state), exact)} 天气活力`,
       ready: canClaimRainRank(state),
+      visible: true,
     },
     {
       id: "runMonsoon",
@@ -265,6 +267,7 @@ function ResetTab({ state, exact, onRunPrimaryAction }: ResetTabProps) {
       effect: `获得 +${getCloudCoreGain(state)} 云核，并推进前线气压`,
       cost: `需要 ${milestone.requiredRainRanks ?? 10} 雨阶与当前主线目标`,
       ready: canRunMonsoon(state),
+      visible: state.rainRanks >= 8 || state.totalMonsoonCycles > 0 || canRunMonsoon(state),
     },
     {
       id: "runFrontEcho",
@@ -272,6 +275,7 @@ function ResetTab({ state, exact, onRunPrimaryAction }: ResetTabProps) {
       effect: `获得 +${getFrontEchoGain(state)} 回响，最多 ${getFrontEchoMaxCount(state)} 层`,
       cost: "低于风暴前线的补偿小 reset",
       ready: canRunFrontEchoReset(state),
+      visible: state.totalMonsoonCycles > 0 || canRunFrontEchoReset(state),
     },
     {
       id: "runStormFront",
@@ -279,6 +283,7 @@ function ResetTab({ state, exact, onRunPrimaryAction }: ResetTabProps) {
       effect: `获得 +${getStormCellGain(state)} 风暴胞`,
       cost: "需要当前前线完成主线目标",
       ready: canRunStormFront(state),
+      visible: state.totalMonsoonCycles > 0 || state.totalStormFronts > 0 || canRunStormFront(state),
     },
     {
       id: "runClimateRewrite",
@@ -286,6 +291,7 @@ function ResetTab({ state, exact, onRunPrimaryAction }: ResetTabProps) {
       effect: `获得 +${getClimateThreadGain(state)} 气候织线`,
       cost: "需要足够风暴前线与天气活力",
       ready: canRunClimateRewrite(state),
+      visible: state.totalStormFronts > 0 || state.totalClimateRewrites > 0 || canRunClimateRewrite(state),
     },
     {
       id: "buySkyHeartPulse",
@@ -293,6 +299,7 @@ function ResetTab({ state, exact, onRunPrimaryAction }: ResetTabProps) {
       effect: `点亮下一次脉冲，当前 ${state.skyHeartPulseLevel}/3`,
       cost: "需要抵达当前天空心脏目标",
       ready: canBuySkyHeartPulse(state),
+      visible: state.totalClimateRewrites > 0 || state.skyHeartPulseLevel > 0 || canBuySkyHeartPulse(state),
     },
     {
       id: "awakenSkyHeart",
@@ -300,12 +307,13 @@ function ResetTab({ state, exact, onRunPrimaryAction }: ResetTabProps) {
       effect: "完成当前终局",
       cost: "需要天气活力抵达 1e308",
       ready: canAwakenSkyHeart(state),
+      visible: state.skyHeartPulseLevel > 0 || state.skyHeartAwakened || canAwakenSkyHeart(state),
     },
   ];
 
   return (
     <div className="upgrade-row-stack">
-      {resetRows.map((row) => (
+      {resetRows.filter((row) => row.visible).map((row) => (
         <UpgradeRow
           key={row.id}
           title={row.title}
@@ -359,7 +367,7 @@ function AtlasTab({
                 costText={owned ? "已拥有" : `${definition.cost} 云核`}
                 ready={!owned && affordable}
                 owned={owned}
-                disabled={owned}
+                disabled={owned || !affordable}
                 onClick={() => onBuyPermanentUpgrade(definition.id)}
               />
             );
@@ -454,7 +462,7 @@ function LayerUpgradeRows<Id extends string>({
             effectText={definition.description}
             costText={cost > 0 ? `${cost} ${unit}` : "已满级"}
             ready={affordable}
-            disabled={cost <= 0}
+            disabled={!affordable}
             onClick={() => onBuy(definition.id)}
           />
         );
