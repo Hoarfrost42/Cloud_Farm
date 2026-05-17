@@ -689,19 +689,19 @@ export function getUpgradeActionDescription(state: WeatherReactorState, upgrade:
     case "monsoonFocus":
       return `生产者链速度增加 ${formatPercentValue(MONSOON_FOCUS_PRODUCER_BONUS, exact)}。`;
     case "stormMemory":
-      return "季风次数对天气活力的加成提高。";
+      return "天气活力乘区按 ×[1+0.12×风暴记忆Lv×max(1,总季风)] 提高。";
     case "pressureGaugeRun":
       return "后续季风获得的气压增加。";
     case "frontRain":
-      return "当前前线的高空气压回响增加。";
+      return "当前前线的高空气压回响指数 +1.4。";
     case "thunderReturn":
-      return "天气生产链获得雷云共鸣，后续有边际递减。";
+      return "生产链共振指数 +4×雷云回流有效Lv，超过 10 级后按平方根软上限。";
     case "overloadedRain":
       return "最大雨阶提高，并放缓后续雨阶需求坡度。";
     case "climateEcho":
-      return "气候织页的回声增强，后续有边际递减。";
+      return "气候回响指数 +2.4×气候回声有效Lv，超过 4 级后按平方根软上限。";
     case "deepVapor":
-      return "雨滴积蓄的水汽回响提高。";
+      return "水汽回响公式里的 log10 系数 +2。";
     case "highCirculation":
       return "后续季风目标阶位降低，后续有压缩上限。";
     case "skyWarmup":

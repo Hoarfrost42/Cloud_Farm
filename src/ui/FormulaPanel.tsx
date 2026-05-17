@@ -1,8 +1,42 @@
 import {
   calculateWeatherPerSecondLog,
+  DROPLET_LOG_DIVISOR,
+  DROPLET_LOG_MULTIPLIER_STEP,
+  formatMultiplier,
+  formatNumber,
   formatRate,
+  getAutoDrizzleGain,
+  getDirectMultiplierSoftCappedLevel,
+  getDropletWeatherMultiplier,
+  getHeavyRainEffectiveLevel,
   getLayerBonusBreakdown,
+  getMonsoonPullMultiplier,
+  getProducerMultiplier,
+  getProducerStockMultiplier,
   getRainRankWeatherMultiplier,
+  HEAVY_RAIN_LATE_SOFT_CAP_SCALE,
+  HEAVY_RAIN_LATE_SOFT_CAP_START,
+  HEAVY_RAIN_SOFT_CAP_SCALE,
+  HEAVY_RAIN_SOFT_CAP_START,
+  HEAVY_RAIN_WEATHER_MULTIPLIER,
+  MONSOON_PULL_LATE_SOFT_CAP_SCALE,
+  MONSOON_PULL_LATE_SOFT_CAP_START,
+  MONSOON_PULL_SOFT_CAP_SCALE,
+  MONSOON_PULL_SOFT_CAP_START,
+  PRODUCER_STOCK_LOG_DIVISOR,
+  PRODUCER_STOCK_LOG_MULTIPLIER_STEP,
+  RAIN_RANK_BASE_BONUS,
+  ROOT_WAKE_BASE_RATE,
+  ROOT_WAKE_RATE_MULTIPLIER,
+  WEATHER_AMPLIFIER_LATE_SOFT_CAP_SCALE,
+  WEATHER_AMPLIFIER_LATE_SOFT_CAP_START,
+  WEATHER_AMPLIFIER_MULTIPLIER,
+  WEATHER_AMPLIFIER_SOFT_CAP_SCALE,
+  WEATHER_AMPLIFIER_SOFT_CAP_START,
+  CLOUD_BLOOM_BASE_RATE,
+  CLOUD_BLOOM_RATE_MULTIPLIER,
+  WIND_EYE_BASE_RATE,
+  WIND_EYE_RATE_MULTIPLIER,
   pow10Clamped,
   type WeatherReactorState,
 } from "../game/economy";
@@ -30,6 +64,33 @@ interface LayerCard {
 export function FormulaPanel({ state, exact }: FormulaPanelProps) {
   const layerBonuses = getLayerBonusBreakdown(state);
   const rainRankMultiplier = getRainRankWeatherMultiplier(state);
+  const dropletStockStep = DROPLET_LOG_MULTIPLIER_STEP + state.upgrades.deepVapor * 2;
+  const dropletStockMultiplier = getDropletWeatherMultiplier(state.resources.droplets, state);
+  const producerStockStep = PRODUCER_STOCK_LOG_MULTIPLIER_STEP + state.climateLaws.deepRootLaw * 1.2;
+  const rootStockMultiplier = getProducerStockMultiplier(state.resources.roots, state);
+  const cloudStockMultiplier = getProducerStockMultiplier(state.resources.clouds, state);
+  const producerMultiplier = getProducerMultiplier(state);
+  const producerExponent = Math.log10(Math.max(1, producerMultiplier));
+  const autoDrizzleGain = getAutoDrizzleGain(state);
+  const weatherAmplifierLevel = getDirectMultiplierSoftCappedLevel(
+    state,
+    state.upgrades.weatherAmplifier,
+    WEATHER_AMPLIFIER_SOFT_CAP_START,
+    WEATHER_AMPLIFIER_SOFT_CAP_SCALE,
+    WEATHER_AMPLIFIER_LATE_SOFT_CAP_START,
+    WEATHER_AMPLIFIER_LATE_SOFT_CAP_SCALE,
+  );
+  const heavyRainLevel = getHeavyRainEffectiveLevel(state);
+  const monsoonPullLevel = getDirectMultiplierSoftCappedLevel(
+    state,
+    state.upgrades.monsoonPull,
+    MONSOON_PULL_SOFT_CAP_START,
+    MONSOON_PULL_SOFT_CAP_SCALE,
+    MONSOON_PULL_LATE_SOFT_CAP_START,
+    MONSOON_PULL_LATE_SOFT_CAP_SCALE,
+  );
+  const monsoonPullMultiplier = getMonsoonPullMultiplier(state);
+  const stormMemoryMultiplier = 1 + state.upgrades.stormMemory * Math.max(1, state.totalMonsoonCycles) * 0.12;
   const weatherRateLog = calculateWeatherPerSecondLog(state);
   const baseFormulaLog = Number.isFinite(weatherRateLog) ? weatherRateLog - layerBonuses.total : Number.NEGATIVE_INFINITY;
   const formatLogRate = (logValue: number) => Number.isFinite(logValue)
@@ -38,32 +99,32 @@ export function FormulaPanel({ state, exact }: FormulaPanelProps) {
   const formulaRules: FormulaRule[] = [
     {
       label: "基础天气",
-      text: "云层注入、活力基流和自动注入先汇成基础天气流速。",
+      text: `基础天气/s = 被动天气 + 自动细雨；被动天气会吃水汽回响、雨阶和本轮培育，自动细雨当前 ${formatRate(autoDrizzleGain, exact)}/s。`,
       visible: true,
     },
     {
       label: "雨阶",
-      text: `天气活力 ×(1+雨阶)，当前 ×${rainRankMultiplier.toFixed(exact ? 2 : 1)}。后续雨阶过载和凝雨法则会加入叠层。`,
+      text: `天气活力 ×[(1+${RAIN_RANK_BASE_BONUS}×雨阶)+0.04×雨阶过载Lv×雨阶²+0.12×凝雨法则Lv×雨阶²]，静雨法则启用时再 ×3，当前 ×${formatMultiplier(rainRankMultiplier, exact)}。`,
       visible: state.rainRanks > 0,
     },
     {
       label: "水汽回响",
-      text: "雨滴库存提高天气活力收益；深层水汽会增强这条库存回响。",
+      text: `天气活力 ×[1+log10(1+雨滴/${formatNumber(DROPLET_LOG_DIVISOR)})×${formatMultiplier(dropletStockStep, exact)}]，当前雨滴 ${formatNumber(state.resources.droplets, exact)}，当前 ×${formatMultiplier(dropletStockMultiplier, exact)}。深层水汽每级让系数 +2。`,
       visible: state.resources.droplets > 0 || state.upgrades.rootWake > 0 || state.upgrades.deepVapor > 0,
     },
     {
       label: "生产链",
-      text: "云团 → 根系 → 雨滴逐层生产；雷云回流、雷暴上升和气压上升会共同放大这条链。",
+      text: `雨滴/s=${ROOT_WAKE_BASE_RATE}×${ROOT_WAKE_RATE_MULTIPLIER}^(根系苏醒Lv-1)×根系库存回响×共振；根系/s=${CLOUD_BLOOM_BASE_RATE}×${CLOUD_BLOOM_RATE_MULTIPLIER}^(云团孕育Lv-1)×云团库存回响×共振；云团/s=${WIND_EYE_BASE_RATE}×${WIND_EYE_RATE_MULTIPLIER}^(风眼牵引Lv-1)×共振。库存回响=1+log10(1+库存/${formatNumber(PRODUCER_STOCK_LOG_DIVISOR)})×${formatMultiplier(producerStockStep, exact)}；当前共振 ×10^${producerExponent.toFixed(exact ? 2 : 1)}。`,
       visible: state.upgrades.rootWake > 0 || state.upgrades.cloudBloom > 0 || state.upgrades.windEye > 0,
     },
     {
       label: "本轮培育",
-      text: "天气增幅、厚云降雨、季风牵引和风暴记忆直接乘进基础天气收益。",
+      text: `被动天气 ×${WEATHER_AMPLIFIER_MULTIPLIER}^天气增幅有效Lv(${formatMultiplier(weatherAmplifierLevel, exact)}) ×${HEAVY_RAIN_WEATHER_MULTIPLIER}^厚云降雨有效Lv(${formatMultiplier(heavyRainLevel, exact)}) ×${formatMultiplier(monsoonPullMultiplier, exact)}^季风牵引有效Lv(${formatMultiplier(monsoonPullLevel, exact)}) ×风暴记忆(${formatMultiplier(stormMemoryMultiplier, exact)})。`,
       visible: state.upgrades.weatherAmplifier > 0 || state.upgrades.heavyRain > 0 || state.upgrades.monsoonPull > 0 || state.upgrades.stormMemory > 0,
     },
     {
       label: "高空回响",
-      text: "天气活力 ×10^(云核+气压+风暴+气候+心脏)。这些是跨层级的指数型推动。",
+      text: `天气活力 ×10^(云核+气压+风暴+气候+心脏)，当前指数 +${layerBonuses.total.toFixed(exact ? 2 : 1)}。这些是跨层级的指数型推动。`,
       visible: state.totalCloudCores > 0 || state.totalMonsoonCycles > 0 || state.totalStormFronts > 0 || state.totalClimateRewrites > 0 || state.skyHeartPulseLevel > 0,
     },
     {

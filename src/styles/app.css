@@ -3535,6 +3535,7 @@ button:disabled {
   font-weight: 800;
   line-height: 1.35;
   white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .workbench-section {
