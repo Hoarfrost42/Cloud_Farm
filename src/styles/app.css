@@ -3058,90 +3058,90 @@ button:disabled {
 
 .workbench-doodle[data-doodle="cloud-rain"] {
   --doodle-w: clamp(118px, 20%, 220px);
-  --doodle-opacity: 0.82;
-  --doodle-rotation: -5deg;
-  left: 31%;
-  top: 34%;
+  --doodle-opacity: 0.78;
+  --doodle-rotation: 6deg;
+  left: 18%;
+  top: 37%;
 }
 
 .workbench-doodle[data-doodle="raindrops"] {
   --doodle-w: clamp(92px, 13%, 150px);
-  --doodle-opacity: 0.84;
-  --doodle-rotation: 4deg;
-  left: 51%;
-  top: 31%;
+  --doodle-opacity: 0.82;
+  --doodle-rotation: -6deg;
+  left: 58%;
+  top: 26%;
 }
 
 .workbench-doodle[data-doodle="wind-swirl"] {
   --doodle-w: clamp(132px, 22%, 238px);
-  --doodle-opacity: 0.82;
-  --doodle-rotation: 2deg;
-  left: 72%;
-  top: 32%;
+  --doodle-opacity: 0.8;
+  --doodle-rotation: -4deg;
+  left: 86%;
+  top: 30%;
 }
 
 .workbench-doodle[data-doodle="prism"] {
   --doodle-w: clamp(92px, 13%, 148px);
-  --doodle-opacity: 0.86;
-  --doodle-rotation: -7deg;
-  left: 28%;
-  top: 62%;
+  --doodle-opacity: 0.84;
+  --doodle-rotation: 11deg;
+  left: 12%;
+  top: 69%;
 }
 
 .workbench-doodle[data-doodle="sprout"] {
   --doodle-w: clamp(86px, 12%, 136px);
   --doodle-opacity: 0.86;
-  --doodle-rotation: 2deg;
-  left: 48%;
-  top: 58%;
+  --doodle-rotation: -8deg;
+  left: 42%;
+  top: 56%;
 }
 
 .workbench-doodle[data-doodle="rain-ring"] {
   --doodle-w: clamp(112px, 17%, 176px);
   --doodle-opacity: 0.82;
-  --doodle-rotation: 5deg;
-  left: 68%;
-  top: 58%;
+  --doodle-rotation: 9deg;
+  left: 71%;
+  top: 61%;
 }
 
 .workbench-doodle[data-doodle="island-contour"] {
-  --doodle-w: clamp(160px, 26%, 286px);
-  --doodle-opacity: 0.72;
-  --doodle-rotation: -4deg;
+  --doodle-w: clamp(148px, 23%, 260px);
+  --doodle-opacity: 0.76;
+  --doodle-rotation: 7deg;
   left: 49%;
-  top: 74%;
+  top: 82%;
 }
 
 .workbench-doodle[data-doodle="tape-strip"] {
   --doodle-w: clamp(118px, 18%, 190px);
-  --doodle-opacity: 0.78;
-  --doodle-rotation: -11deg;
-  left: 38%;
-  top: 82%;
+  --doodle-opacity: 0.72;
+  --doodle-rotation: -17deg;
+  left: 20%;
+  top: 88%;
 }
 
 .workbench-doodle[data-doodle="circle-stamp"] {
   --doodle-w: clamp(74px, 10%, 116px);
-  --doodle-opacity: 0.86;
-  --doodle-rotation: 3deg;
-  left: 60%;
-  top: 80%;
+  --doodle-opacity: 0.8;
+  --doodle-rotation: -10deg;
+  left: 64%;
+  top: 88%;
 }
 
 .workbench-doodle[data-doodle="arrow-loop"] {
   --doodle-w: clamp(106px, 18%, 190px);
-  --doodle-opacity: 0.82;
-  --doodle-rotation: 7deg;
-  left: 73%;
-  top: 81%;
+  --doodle-opacity: 0.78;
+  --doodle-rotation: 17deg;
+  left: 85%;
+  top: 76%;
 }
 
 .workbench-doodle[data-doodle="lower-cloud"] {
-  --doodle-w: clamp(124px, 20%, 220px);
+  --doodle-w: clamp(104px, 18%, 190px);
   --doodle-opacity: 0.76;
-  --doodle-rotation: 6deg;
-  left: 84%;
-  top: 74%;
+  --doodle-rotation: -9deg;
+  left: 91%;
+  top: 90%;
 }
 
 .workbench-content::before,
@@ -3220,6 +3220,48 @@ button:disabled {
   color: var(--ledger-ink);
 }
 
+.resource-ledger-doodles {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.resource-ledger-doodle {
+  position: absolute;
+  width: var(--doodle-w);
+  height: auto;
+  opacity: var(--doodle-opacity, 0.56);
+  filter: grayscale(1) contrast(1.28);
+  mix-blend-mode: multiply;
+  transform: translate(-50%, -50%) rotate(var(--doodle-rotation, 0deg));
+}
+
+.resource-ledger-doodle[data-doodle="side-cloud"] {
+  --doodle-w: 132px;
+  --doodle-opacity: 0.56;
+  --doodle-rotation: -13deg;
+  left: 58%;
+  top: 66%;
+}
+
+.resource-ledger-doodle[data-doodle="side-ring"] {
+  --doodle-w: 106px;
+  --doodle-opacity: 0.48;
+  --doodle-rotation: 16deg;
+  left: 34%;
+  top: 48%;
+}
+
+.resource-ledger-doodle[data-doodle="side-arrow"] {
+  --doodle-w: 116px;
+  --doodle-opacity: 0.5;
+  --doodle-rotation: -18deg;
+  left: 72%;
+  top: 86%;
+}
+
 .resource-ledger::before {
   position: absolute;
   right: 12px;
@@ -3234,6 +3276,12 @@ button:disabled {
   opacity: 0.72;
   content: "";
   pointer-events: none;
+}
+
+.resource-ledger__header,
+.resource-ledger__body {
+  position: relative;
+  z-index: 1;
 }
 
 .resource-ledger__header {

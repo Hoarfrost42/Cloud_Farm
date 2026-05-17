@@ -12,6 +12,11 @@ interface ResourceLedgerProps {
 export function ResourceLedger({ sections, onOpenTab }: ResourceLedgerProps) {
   return (
     <aside {...getUiRegionProps("resourceMargin", "resource-ledger")}>
+      <div className="resource-ledger-doodles" aria-hidden="true">
+        <img className="resource-ledger-doodle" data-doodle="side-cloud" src="/assets/art/ui/doodle_lower_cloud.png" alt="" />
+        <img className="resource-ledger-doodle" data-doodle="side-ring" src="/assets/art/ui/doodle_rain_ring.png" alt="" />
+        <img className="resource-ledger-doodle" data-doodle="side-arrow" src="/assets/art/ui/doodle_arrow_loop.png" alt="" />
+      </div>
       <header className="resource-ledger__header">
         <div>
           <span>手账边注</span>
