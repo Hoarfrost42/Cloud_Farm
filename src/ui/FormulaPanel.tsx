@@ -63,7 +63,7 @@ export function FormulaPanel({ state, exact }: FormulaPanelProps) {
     },
     {
       label: "高空回响",
-      text: "天气活力 ×10^(云核+气压+风暴+气候+心脏)。这些是跨层级的高空推动。",
+      text: "天气活力 ×10^(云核+气压+风暴+气候+心脏)。这些是跨层级的指数型推动。",
       visible: state.totalCloudCores > 0 || state.totalMonsoonCycles > 0 || state.totalStormFronts > 0 || state.totalClimateRewrites > 0 || state.skyHeartPulseLevel > 0,
     },
     {
