@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { GoalViewModel, IslandMood, PrimaryActionId, PrimaryActionViewModel, WeatherReactorState } from "../game/economy";
 import { getCloudTouchAmount } from "../game/economy";
 
@@ -16,8 +16,16 @@ interface ReactorStagePanelProps {
   onRunPrimaryAction: (actionId: PrimaryActionId) => void;
 }
 
+interface CloudMistBubble {
+  id: number;
+  text: string;
+  x: number;
+  drift: number;
+  delay: number;
+}
+
 /**
- * Renders the compact living island stage and the current major action.
+ * Renders the living island recovery stage and the current major action.
  */
 export function ReactorStagePanel({
   state,
@@ -33,9 +41,48 @@ export function ReactorStagePanel({
   onRunPrimaryAction,
 }: ReactorStagePanelProps) {
   const shouldShowMajorAction = primaryAction.id !== "touchCloud";
+  const [cloudBurstId, setCloudBurstId] = useState(0);
+  const [mistBubbles, setMistBubbles] = useState<CloudMistBubble[]>([]);
+  const shouldShowPanelNotice = notice && !notice.text.includes("云注入");
+
+  useEffect(() => {
+    if (cloudBurstId === 0) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setCloudBurstId(0), 260);
+    return () => window.clearTimeout(timeoutId);
+  }, [cloudBurstId]);
+
+  useEffect(() => {
+    if (mistBubbles.length === 0) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setMistBubbles((currentBubbles) => currentBubbles.slice(1));
+    }, 1250);
+    return () => window.clearTimeout(timeoutId);
+  }, [mistBubbles]);
+
+  function touchCloudWithFeedback() {
+    const id = Date.now();
+    setCloudBurstId(id);
+    setMistBubbles((currentBubbles) => [
+      ...currentBubbles.slice(-3),
+      {
+        id,
+        text: `+${displayNumber(getCloudTouchAmount(state))} 天气活力`,
+        x: 42 + Math.random() * 18,
+        drift: -18 + Math.random() * 36,
+        delay: Math.random() * 80,
+      },
+    ]);
+    onTouchCloud();
+  }
 
   return (
-    <aside className={`reactor-stage-panel ${mood.stageClassName}`} aria-label="空岛反应堆">
+    <aside className={`reactor-stage-panel ${mood.stageClassName}`} aria-label="空岛复苏现场">
       <div className={`reactor-weather-effect reactor-weather-effect--${mood.weatherEffect}`} aria-hidden="true" />
 
       <header className="reactor-stage-panel__header">
@@ -43,7 +90,7 @@ export function ReactorStagePanel({
         <strong>{mood.subtitle}</strong>
       </header>
 
-      {notice ? (
+      {shouldShowPanelNotice ? (
         <div className={`reactor-notice reactor-notice--${notice.kind}`} role="status">
           {notice.text}
         </div>
@@ -51,10 +98,28 @@ export function ReactorStagePanel({
 
       <button
         type="button"
-        className={canTouchCloud ? "compact-cloud-button" : "compact-cloud-button compact-cloud-button--cooling"}
+        className={[
+          "compact-cloud-button",
+          canTouchCloud ? "" : "compact-cloud-button--cooling",
+          cloudBurstId > 0 ? "compact-cloud-button--burst" : "",
+        ].filter(Boolean).join(" ")}
         disabled={!canTouchCloud}
-        onClick={onTouchCloud}
+        onClick={touchCloudWithFeedback}
       >
+        <span className="cloud-mist-bubbles" aria-hidden="true">
+          {mistBubbles.map((bubble) => (
+            <i
+              key={bubble.id}
+              style={{
+                "--bubble-x": `${bubble.x}%`,
+                "--bubble-drift": `${bubble.drift}px`,
+                "--bubble-delay": `${bubble.delay}ms`,
+              } as CSSProperties}
+            >
+              {bubble.text}
+            </i>
+          ))}
+        </span>
         <span className="cloud-visual cloud-visual--compact" aria-hidden="true">
           <i />
           <i />
@@ -86,7 +151,7 @@ export function ReactorStagePanel({
           onClick={() => onRunPrimaryAction(primaryAction.id)}
         >
           <span>
-            <small>主动作</small>
+            <small>回晴动作</small>
             <strong>{primaryAction.title}</strong>
             <em>{primaryAction.description}</em>
           </span>
@@ -96,4 +161,3 @@ export function ReactorStagePanel({
     </aside>
   );
 }
-

@@ -6,18 +6,18 @@ interface ResourceLedgerProps {
 }
 
 /**
- * Shows every unlocked resource in a compact always-visible ledger.
+ * Shows every unlocked resource as always-visible notebook margin notes.
  */
 export function ResourceLedger({ sections, onOpenTab }: ResourceLedgerProps) {
   return (
-    <aside className="resource-ledger" aria-label="已解锁资源观察区">
+    <aside className="resource-ledger" aria-label="天气手账边注">
       <header className="resource-ledger__header">
         <div>
-          <span>资源观察</span>
-          <strong>已解锁资源</strong>
+          <span>手账边注</span>
+          <strong>已记录天气</strong>
         </div>
         {onOpenTab ? (
-          <button type="button" onClick={() => onOpenTab("resources")}>详情</button>
+          <button type="button" onClick={() => onOpenTab("resources")}>翻开</button>
         ) : null}
       </header>
 

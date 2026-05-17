@@ -1,6 +1,6 @@
-# Cloud Island / 天气反应堆 v13 lab
+# 云屿回晴 / Cloud Island v13 lab
 
-这里是 `Cloud Island / 云上小岛` 的天气反应堆实验仓库。当前主线已经从 v12 Formula C 推进到：
+这里是《云屿回晴》的 v13 实验仓库。旧名为 `Cloud Island / 云上小岛`，当前 UI 方向已从“天气反应堆”收束为“空岛复苏手账”：玩家从第一次点击凝聚天气活力开始，让沉睡的空中小岛逐步回晴。
 
 ```text
 v13 / Post-Monsoon Complete Slice

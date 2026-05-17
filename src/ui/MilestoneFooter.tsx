@@ -6,12 +6,12 @@ interface MilestoneFooterProps {
 }
 
 /**
- * Renders the thin bottom milestone bar.
+ * Renders the thin recovery route bar.
  */
 export function MilestoneFooter({ goal }: MilestoneFooterProps) {
   return (
     <footer className="milestone-footer">
-      <span>当前主线：{goal.title}</span>
+      <span>回晴航迹：{goal.title}</span>
       <div className="milestone-footer__meter" aria-hidden="true">
         <i style={{ "--progress": goal.progress } as CSSProperties} />
       </div>

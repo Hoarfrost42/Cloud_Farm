@@ -21,7 +21,7 @@ export function UpgradeRow({
   effectText,
   detailText,
   costText,
-  actionText = "购买",
+  actionText = "培育",
   ready = false,
   owned = false,
   disabled = false,

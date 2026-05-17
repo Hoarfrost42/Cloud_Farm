@@ -69,7 +69,7 @@ interface WorkbenchPanelProps {
 }
 
 /**
- * Renders the right-side classic incremental workbench.
+ * Renders the right-side recovery notebook workbench.
  */
 export function WorkbenchPanel({
   state,
@@ -90,7 +90,7 @@ export function WorkbenchPanel({
   const resourceLedgerSections = getResourceLedgerSections(state, exact);
 
   return (
-    <section className="workbench-panel" aria-label="当前系统工作台">
+    <section className="workbench-panel" aria-label="复苏手账主页面">
       {renderWorkbenchHeader(state, activeTab)}
       <div className="workbench-body">
         <div className="workbench-content">
@@ -131,13 +131,13 @@ export function WorkbenchPanel({
 function renderWorkbenchHeader(state: WeatherReactorState, activeTab: MainTabId) {
   const milestone = getCurrentMainlineMilestone(state);
   const title = {
-    reactor: "概览",
-    runUpgrades: "本轮升级",
-    resets: "重置",
-    resources: "资源",
-    atlas: "天气图谱",
-    formula: "公式",
-    settings: "设置",
+    reactor: "复苏概览",
+    runUpgrades: "培育页",
+    resets: "循环页",
+    resources: "记录页",
+    atlas: "云屿图谱",
+    formula: "批注页",
+    settings: "书签页",
   }[activeTab];
 
   return (
@@ -146,7 +146,7 @@ function renderWorkbenchHeader(state: WeatherReactorState, activeTab: MainTabId)
         <span className="section-kicker">{milestone.title}</span>
         <strong>{title}</strong>
       </div>
-      <small>目标 1e{getCurrentMilestoneTargetExp(state).toFixed(0)}</small>
+      <small>回晴至 1e{getCurrentMilestoneTargetExp(state).toFixed(0)}</small>
     </header>
   );
 }
@@ -155,14 +155,14 @@ function renderReactorTab(state: WeatherReactorState) {
   const recommended = getRecommendedUpgradeIds(state);
   return (
     <div className="workbench-section">
-      <span className="section-kicker">推荐关注</span>
+      <span className="section-kicker">本页摘记</span>
       <div className="reactor-brief-grid">
         <div>
           <strong>当前雨阶 {state.rainRanks}</strong>
           <small>季风 {state.totalMonsoonCycles} · 风暴 {state.totalStormFronts} · 气候 {state.totalClimateRewrites}</small>
         </div>
         <div>
-          <strong>{recommended.length > 0 ? "优先升级" : "等待增长"}</strong>
+          <strong>{recommended.length > 0 ? "推荐照看" : "等待生长"}</strong>
           <small>{recommended.length > 0 ? recommended.map((id) => getUpgrade(id).name).join(" / ") : "保持天气活力流动，等待下一个门槛。"}</small>
         </div>
       </div>
@@ -208,7 +208,7 @@ function RunUpgradeTab({ state, selectedUpgradeGroupId, exact, onSelectUpgradeGr
         ))}
         {nextLockedGroup ? (
           <div className="next-unlock-note">
-            <span>下一组</span>
+            <span>下一页</span>
             <strong>{nextLockedGroup.badge} {nextLockedGroup.title}</strong>
             <small>{nextLockedGroup.lockedHint}</small>
           </div>
@@ -490,13 +490,13 @@ function SettingsTab({ exact, onToggleExact, onResetAll }: SettingsTabProps) {
   return (
     <div className="settings-panel">
       <section className="workbench-section">
-        <span className="section-kicker">显示</span>
+        <span className="section-kicker">显示书签</span>
         <button type="button" className="classic-command-button" onClick={onToggleExact}>
           {exact ? "切换为简洁显示" : "切换为小数显示"}
         </button>
       </section>
       <section className="workbench-section">
-        <span className="section-kicker">存档</span>
+        <span className="section-kicker">存档书签</span>
         <button type="button" className="classic-command-button classic-command-button--danger" onClick={onResetAll}>
           重置存档
         </button>

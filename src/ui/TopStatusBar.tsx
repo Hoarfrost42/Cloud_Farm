@@ -1,5 +1,5 @@
 import type { GoalViewModel, HudResourceViewModel, IslandMood } from "../game/economy";
-import { ECONOMY_VERSION_LABEL, formatElapsedTime } from "../game/economy";
+import { formatElapsedTime } from "../game/economy";
 
 interface TopStatusBarProps {
   mood: IslandMood;
@@ -11,7 +11,7 @@ interface TopStatusBarProps {
 }
 
 /**
- * Renders the thin classic incremental status bar.
+ * Renders the compact island recovery pulse bar.
  */
 export function TopStatusBar({
   mood,
@@ -24,14 +24,14 @@ export function TopStatusBar({
   return (
     <header className="top-status-bar">
       <div className="top-status-brand">
-        <span className="brand-mark" aria-hidden="true">CI</span>
+        <span className="brand-mark" aria-hidden="true">晴</span>
         <div>
-          <strong>云上小岛</strong>
-          <small>{mood.title} · {ECONOMY_VERSION_LABEL}</small>
+          <strong>云屿回晴</strong>
+          <small>{mood.title} · 空岛复苏手账</small>
         </div>
       </div>
 
-      <div className="top-status-stats" aria-label="当前关键资源">
+      <div className="top-status-stats" aria-label="晴雨脉象">
         {stats.map((stat) => (
           <div key={stat.id} className={`top-stat top-stat--${stat.id}`}>
             <i className="top-stat__icon" aria-hidden="true" />
@@ -43,7 +43,7 @@ export function TopStatusBar({
       </div>
 
       <div className="top-status-goal">
-        <span>目标</span>
+        <span>回晴目标</span>
         <strong>{goal.title}</strong>
       </div>
 

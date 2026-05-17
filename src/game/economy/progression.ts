@@ -179,8 +179,8 @@ const MOODS: Record<IslandMoodId, IslandMood> = {
   },
   stormFront: {
     id: "stormFront",
-    title: "风暴前线",
-    subtitle: "多次季风叠成锋面，天气正在向更高层压缩。",
+    title: "云潮前线",
+    subtitle: "多次季风叠成发光的云潮，远雷也变成温柔的回声。",
     shellClassName: "mood-storm-front",
     stageClassName: "stage-storm-front",
     weatherEffect: "storm",
@@ -385,12 +385,12 @@ export function getResourceLedgerSections(
   }
 
   const sections: ResourceLedgerSection[] = [
-    { id: "run", title: "本轮", items: runItems },
-    { id: "reset", title: "重置层", items: resetItems },
-    { id: "front", title: "前线", items: frontItems },
-    { id: "storm", title: "风暴", items: stormItems },
-    { id: "climate", title: "气候", items: climateItems },
-    { id: "endgame", title: "终局", items: endgameItems },
+    { id: "run", title: "本轮天气", items: runItems },
+    { id: "reset", title: "循环记忆", items: resetItems },
+    { id: "front", title: "云潮气息", items: frontItems },
+    { id: "storm", title: "远雷花芽", items: stormItems },
+    { id: "climate", title: "气候织页", items: climateItems },
+    { id: "endgame", title: "天空心跳", items: endgameItems },
   ];
 
   return sections.filter((section) => section.items.length > 0);
@@ -472,9 +472,9 @@ export function getVisibleHudStats(state: WeatherReactorState, exact = false) {
  */
 export function getUnlockedMainTabs(state: WeatherReactorState): MainTabDefinition[] {
   const tabs: MainTabDefinition[] = [
-    { id: "runUpgrades", label: "本轮升级" },
-    { id: "resets", label: "重置" },
-    { id: "resources", label: "资源" },
+    { id: "runUpgrades", label: "培育" },
+    { id: "resets", label: "循环" },
+    { id: "resources", label: "记录" },
   ];
 
   if (state.totalMonsoonCycles > 0 || state.cloudCores > 0 || state.totalStormFronts > 0) {
@@ -482,10 +482,10 @@ export function getUnlockedMainTabs(state: WeatherReactorState): MainTabDefiniti
   }
 
   if (state.rainRanks > 0 || state.cloudLevel >= 2 || state.totalMonsoonCycles > 0) {
-    tabs.push({ id: "formula", label: "公式" });
+    tabs.push({ id: "formula", label: "批注" });
   }
 
-  tabs.push({ id: "settings", label: "设置" });
+  tabs.push({ id: "settings", label: "书签" });
   return tabs;
 }
 
