@@ -52,31 +52,35 @@ export function UpgradeRow({
   const fullDescription = detailText ? `${title}。${effectText} ${detailText}` : `${title}。${effectText}`;
 
   return (
-    <button
-      type="button"
-      className={[
-        "classic-upgrade-row",
-        ready ? "classic-upgrade-row--ready" : "",
-        owned ? "classic-upgrade-row--owned" : "",
-        recommended ? "classic-upgrade-row--recommended" : "",
-      ].filter(Boolean).join(" ")}
-      data-ui-state={stateKind}
-      data-state-label={stateLabel}
-      title={fullDescription}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      <span className="classic-upgrade-row__state-mark" aria-hidden="true">{stateLabel}</span>
-      <span className="classic-upgrade-row__name">
-        <strong>{title}</strong>
-        {levelText ? <small>{levelText}</small> : null}
+    <span className="classic-upgrade-row-wrap">
+      <button
+        type="button"
+        className={[
+          "classic-upgrade-row",
+          ready ? "classic-upgrade-row--ready" : "",
+          owned ? "classic-upgrade-row--owned" : "",
+          recommended ? "classic-upgrade-row--recommended" : "",
+        ].filter(Boolean).join(" ")}
+        data-ui-state={stateKind}
+        data-state-label={stateLabel}
+        disabled={disabled}
+        onClick={onClick}
+      >
+        <span className="classic-upgrade-row__state-mark" aria-hidden="true">{stateLabel}</span>
+        <span className="classic-upgrade-row__name">
+          <strong>{title}</strong>
+          {levelText ? <small>{levelText}</small> : null}
+        </span>
+        <span className="classic-upgrade-row__effect">
+          <strong>{effectText}</strong>
+          {detailText ? <small>{detailText}</small> : null}
+        </span>
+        <span className="classic-upgrade-row__cost">{costText}</span>
+        <span className="classic-upgrade-row__action">{actionLabel}</span>
+      </button>
+      <span className="classic-upgrade-row-tooltip" role="tooltip">
+        {fullDescription}
       </span>
-      <span className="classic-upgrade-row__effect">
-        <strong>{effectText}</strong>
-        {detailText ? <small>{detailText}</small> : null}
-      </span>
-      <span className="classic-upgrade-row__cost">{costText}</span>
-      <span className="classic-upgrade-row__action">{actionLabel}</span>
-    </button>
+    </span>
   );
 }

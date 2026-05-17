@@ -3767,8 +3767,21 @@ button:disabled {
   line-height: 1.35;
 }
 
+.classic-upgrade-row-wrap {
+  position: relative;
+  z-index: 0;
+  min-width: 0;
+  display: block;
+}
+
+.classic-upgrade-row-wrap:hover,
+.classic-upgrade-row-wrap:focus-within {
+  z-index: 20;
+}
+
 .classic-upgrade-row {
   position: relative;
+  width: 100%;
   min-width: 0;
   min-height: 66px;
   display: grid;
@@ -3816,6 +3829,8 @@ button:disabled {
 .classic-upgrade-row::after {
   position: absolute;
   inset: 0;
+  z-index: 1;
+  border-radius: inherit;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
   opacity: 0;
   transform: translateX(-50%);
@@ -3885,6 +3900,15 @@ button:disabled {
 }
 
 .classic-upgrade-row__name,
+.classic-upgrade-row__effect,
+.classic-upgrade-row__cost,
+.classic-upgrade-row__action,
+.classic-upgrade-row__state-mark {
+  position: relative;
+  z-index: 2;
+}
+
+.classic-upgrade-row__name,
 .classic-upgrade-row__effect {
   min-width: 0;
   display: grid;
@@ -3930,6 +3954,39 @@ button:disabled {
 
 .classic-upgrade-row__effect small {
   line-height: 1.26;
+}
+
+.classic-upgrade-row-tooltip {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: calc(100% + 10px);
+  z-index: 40;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid rgba(151, 117, 67, 0.2);
+  border-radius: 12px;
+  color: var(--ledger-ink);
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(255, 217, 120, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(255, 253, 246, 0.98), rgba(239, 250, 255, 0.94));
+  box-shadow:
+    0 12px 24px rgba(44, 82, 105, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1.42;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.classic-upgrade-row-wrap:hover .classic-upgrade-row-tooltip,
+.classic-upgrade-row-wrap:focus-within .classic-upgrade-row-tooltip {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .classic-upgrade-row__cost {
