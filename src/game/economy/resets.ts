@@ -1,6 +1,9 @@
 import {
   BASE_RAIN_RANK_REQUIREMENT,
+  FRONT_ECHO_REQUIREMENT_STEP,
+  FRONT_ECHO_TARGET_OFFSET,
   MAINLINE_MILESTONES,
+  MAX_FRONT_ECHOES_PER_FRONT,
   MAX_RAIN_COMPRESSION_EXPONENT,
   MONSOON_RAIN_RANK_REQUIREMENT,
   RAIN_RANK_REQUIREMENT_EXPONENTS,
@@ -30,6 +33,7 @@ export function performRainRankReset<T extends WeatherReactorState>(state: T): T
     monsoonCyclesInFront: state.monsoonCyclesInFront,
     pressure: state.pressure,
     totalPressureSpentThisFront: state.totalPressureSpentThisFront,
+    frontEchoesThisFront: state.frontEchoesThisFront,
     stormCells: state.stormCells,
     totalStormCells: state.totalStormCells,
     totalStormFronts: state.totalStormFronts,
@@ -57,8 +61,6 @@ export function performRainRankReset<T extends WeatherReactorState>(state: T): T
   if (state.permanentUpgrades.includes("windEyeMemory") || state.stormUpgrades.windEyeRelic > 0) {
     upgrades.windEye = Math.max(upgrades.windEye, 1);
   }
-
-  upgrades.monsoonPull = state.upgrades.monsoonPull;
 
   return {
     ...state,
@@ -206,17 +208,28 @@ export function getCurrentMilestoneTargetExp(state: WeatherReactorState) {
   if (milestone.kind === "monsoon") {
     targetExp -= state.pressureUpgrades.frontCompression * 3;
     targetExp -= state.stormUpgrades.frontScar * 4;
-    targetExp -= state.upgrades.highCirculation * 5;
+    targetExp -= Math.min(30, getSoftCappedRunTargetCompression(state.upgrades.highCirculation, 3, 1.2) * 2);
     targetExp += state.activeClimateLaws.includes("backflow") ? 5 : 0;
   }
 
   if (milestone.kind === "skyPulse") {
-    targetExp -= state.upgrades.skyWarmup * 5;
+    targetExp -= Math.min(24, getSoftCappedRunTargetCompression(state.upgrades.skyWarmup, 3, 1.2) * 2);
     targetExp -= state.climateLaws.skyHeartOmen > 0 ? 5 : 0;
     targetExp -= state.activeClimateLaws.includes("shortDay") ? 10 : 0;
   }
 
   return Math.max(0, targetExp);
+}
+
+/**
+ * Smooths run-only target compression so milestone goals cannot be erased in one run.
+ */
+function getSoftCappedRunTargetCompression(level: number, start: number, scale: number) {
+  if (level <= start) {
+    return level;
+  }
+
+  return start + Math.sqrt(level - start) * scale;
 }
 
 /**
@@ -347,6 +360,7 @@ export function performMonsoonReset<T extends WeatherReactorState>(state: T): T 
     monsoonCyclesInFront: state.monsoonCyclesInFront + 1,
     pressure: state.pressure + gainedPressure,
     totalPressureSpentThisFront: state.totalPressureSpentThisFront,
+    frontEchoesThisFront: state.frontEchoesThisFront,
     stormCells: state.stormCells,
     totalStormCells: state.totalStormCells,
     totalStormFronts: state.totalStormFronts,
@@ -373,6 +387,144 @@ export function performMonsoonReset<T extends WeatherReactorState>(state: T): T 
     ...state,
     ...resetState,
     upgrades,
+    pressureUpgrades: state.pressureUpgrades,
+    stormUpgrades: state.stormUpgrades,
+    climateLaws: state.climateLaws,
+    clickCooldownRemaining: 0,
+  };
+}
+
+/**
+ * Returns the lower storm-front echo requirement in exponent form.
+ */
+export function getFrontEchoRequirementExp(state: WeatherReactorState) {
+  return getFrontEchoRequirementExpForCount(state, state.frontEchoesThisFront);
+}
+
+/**
+ * Returns the maximum front echoes allowed in the current mainline stage.
+ */
+export function getFrontEchoMaxCount(state: WeatherReactorState) {
+  const milestone = getCurrentMainlineMilestone(state);
+  if (milestone.id === "climate_rewrite_2" || milestone.id === "sky_pulse_1") {
+    return MAX_FRONT_ECHOES_PER_FRONT + 2;
+  }
+
+  return MAX_FRONT_ECHOES_PER_FRONT;
+}
+
+/**
+ * Returns the requirement for the next echo at a specific current echo count.
+ */
+export function getFrontEchoRequirementExpForCount(state: WeatherReactorState, echoCount: number) {
+  const milestone = getCurrentMainlineMilestone(state);
+  if (milestone.id === "climate_rewrite_2") {
+    return getCurrentMilestoneTargetExp(state)
+      - FRONT_ECHO_TARGET_OFFSET
+      + echoCount * 3.5;
+  }
+
+  if (milestone.id === "sky_pulse_1") {
+    return getCurrentMilestoneTargetExp(state)
+      - 45
+      + echoCount * FRONT_ECHO_REQUIREMENT_STEP;
+  }
+
+  return getCurrentMilestoneTargetExp(state)
+    - FRONT_ECHO_TARGET_OFFSET
+    + echoCount * FRONT_ECHO_REQUIREMENT_STEP;
+}
+
+/**
+ * Returns how many echo layers the current weather vitality can claim at once.
+ */
+export function getFrontEchoGain(state: WeatherReactorState) {
+  const milestone = getCurrentMainlineMilestone(state);
+  const maxEchoes = getFrontEchoMaxCount(state);
+  const isSecondStormFrontEcho = (
+    milestone.id === "storm_front_2"
+    && state.totalStormFronts === 1
+    && state.rainRanks >= (milestone.requiredRainRanks ?? 0)
+    && state.monsoonCyclesInFront >= (milestone.requiredMonsoonsInFront ?? 0)
+    && !canRunStormFront(state)
+  );
+  const isSecondClimateEcho = (
+    milestone.id === "climate_rewrite_2"
+    && state.totalStormFronts >= 3
+    && state.totalClimateRewrites >= 1
+    && !canRunClimateRewrite(state)
+  );
+  const isFirstSkyPulseEcho = (
+    milestone.id === "sky_pulse_1"
+    && state.totalClimateRewrites >= 2
+    && !canBuySkyHeartPulse(state)
+  );
+
+  if (
+    (!isSecondStormFrontEcho && !isSecondClimateEcho && !isFirstSkyPulseEcho)
+    || state.frontEchoesThisFront >= maxEchoes
+  ) {
+    return 0;
+  }
+
+  const weatherExp = log10Safe(state.resources.weather);
+  let nextEchoes = state.frontEchoesThisFront;
+  while (
+    nextEchoes < maxEchoes
+    && weatherExp >= getFrontEchoRequirementExpForCount(state, nextEchoes)
+  ) {
+    nextEchoes += 1;
+  }
+
+  return nextEchoes - state.frontEchoesThisFront;
+}
+
+/**
+ * Returns whether the current run can take a partial front reset.
+ */
+export function canRunFrontEchoReset(state: WeatherReactorState) {
+  return getFrontEchoGain(state) > 0;
+}
+
+/**
+ * Performs a partial storm-front echo reset without granting storm cells.
+ */
+export function performFrontEchoReset<T extends WeatherReactorState>(state: T): T {
+  if (!canRunFrontEchoReset(state)) {
+    return state;
+  }
+
+  const gainedEchoes = getFrontEchoGain(state);
+  const resetState = createInitialState({
+    cloudCores: state.cloudCores,
+    totalCloudCores: state.totalCloudCores,
+    monsoonCycles: state.monsoonCycles,
+    totalMonsoonCycles: state.totalMonsoonCycles,
+    monsoonCyclesInFront: state.monsoonCyclesInFront,
+    pressure: state.pressure,
+    totalPressureSpentThisFront: state.totalPressureSpentThisFront,
+    frontEchoesThisFront: state.frontEchoesThisFront + gainedEchoes,
+    stormCells: state.stormCells,
+    totalStormCells: state.totalStormCells,
+    totalStormFronts: state.totalStormFronts,
+    stormFrontsInClimate: state.stormFrontsInClimate,
+    climateThreads: state.climateThreads,
+    totalClimateThreads: state.totalClimateThreads,
+    totalClimateRewrites: state.totalClimateRewrites,
+    activeClimateLaws: state.activeClimateLaws,
+    stormUpgrades: state.stormUpgrades,
+    skyHeartPulseLevel: state.skyHeartPulseLevel,
+    permanentUpgrades: state.permanentUpgrades,
+    skyHeartAwakened: state.skyHeartAwakened,
+    elapsedSeconds: state.elapsedSeconds,
+    bestWeather: state.bestWeather,
+    bestWeatherExp: state.bestWeatherExp,
+    rainRanks: state.rainRanks,
+  });
+
+  return {
+    ...state,
+    ...resetState,
     pressureUpgrades: state.pressureUpgrades,
     stormUpgrades: state.stormUpgrades,
     climateLaws: state.climateLaws,
@@ -434,6 +586,7 @@ export function performStormFrontReset<T extends WeatherReactorState>(state: T):
     monsoonCyclesInFront: 0,
     pressure: 0,
     totalPressureSpentThisFront: 0,
+    frontEchoesThisFront: 0,
     stormCells: trunkResult.stormCells,
     totalStormCells: state.totalStormCells + gainedStormCells,
     totalStormFronts: state.totalStormFronts + 1,
@@ -490,6 +643,7 @@ export function performClimateRewrite<T extends WeatherReactorState>(state: T): 
     monsoonCyclesInFront: 0,
     pressure: 0,
     totalPressureSpentThisFront: 0,
+    frontEchoesThisFront: 0,
     stormCells: state.stormCells,
     totalStormCells: state.totalStormCells,
     totalStormFronts: state.totalStormFronts,
@@ -518,16 +672,46 @@ export function performClimateRewrite<T extends WeatherReactorState>(state: T): 
 }
 
 /**
- * Buys the next sky-heart pulse.
+ * Lights the next sky-heart pulse and starts a fresh terminal push.
  */
 export function performSkyHeartPulse<T extends WeatherReactorState>(state: T): T {
   if (!canBuySkyHeartPulse(state) || state.skyHeartPulseLevel >= SKY_HEART_PULSE_BONUS_EXPONENTS.length) {
     return state;
   }
 
+  const resetState = createInitialState({
+    cloudCores: state.cloudCores,
+    totalCloudCores: state.totalCloudCores,
+    monsoonCycles: state.monsoonCycles,
+    totalMonsoonCycles: state.totalMonsoonCycles,
+    monsoonCyclesInFront: 0,
+    pressure: 0,
+    totalPressureSpentThisFront: 0,
+    frontEchoesThisFront: 0,
+    stormCells: state.stormCells,
+    totalStormCells: state.totalStormCells,
+    totalStormFronts: state.totalStormFronts,
+    stormFrontsInClimate: state.stormFrontsInClimate,
+    climateThreads: state.climateThreads,
+    totalClimateThreads: state.totalClimateThreads,
+    totalClimateRewrites: state.totalClimateRewrites,
+    activeClimateLaws: state.activeClimateLaws,
+    stormUpgrades: state.stormUpgrades,
+    skyHeartPulseLevel: state.skyHeartPulseLevel + 1,
+    permanentUpgrades: state.permanentUpgrades,
+    skyHeartAwakened: state.skyHeartAwakened,
+    elapsedSeconds: state.elapsedSeconds,
+    bestWeather: state.bestWeather,
+    bestWeatherExp: state.bestWeatherExp,
+  });
+
   return {
     ...state,
-    skyHeartPulseLevel: state.skyHeartPulseLevel + 1,
+    ...resetState,
+    pressureUpgrades: createEmptyPressureUpgrades(),
+    stormUpgrades: state.stormUpgrades,
+    climateLaws: state.climateLaws,
+    clickCooldownRemaining: 0,
   };
 }
 

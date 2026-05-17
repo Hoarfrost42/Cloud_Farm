@@ -83,6 +83,7 @@ export interface WeatherReactorState {
   monsoonCyclesInFront: number;
   pressure: number;
   totalPressureSpentThisFront: number;
+  frontEchoesThisFront: number;
   stormCells: number;
   totalStormCells: number;
   totalStormFronts: number;

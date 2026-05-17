@@ -14,6 +14,7 @@ import {
   canClaimRainRank,
   canPay,
   canRunClimateRewrite,
+  canRunFrontEchoReset,
   canRunMonsoon,
   canRunStormFront,
   createInitialState,
@@ -23,9 +24,13 @@ import {
   getCloudTouchAmount,
   getCurrentMainlineMilestone,
   getCurrentMilestoneTargetExp,
+  getFrontEchoRequirementExp,
+  getAutoDrizzleGain,
   getLayerBonusBreakdown,
   getLayerUpgradeCost,
+  getPassiveWeatherGain,
   getPressureGainOnMonsoon,
+  getProducerMultiplier,
   getRainRankRequirementExp,
   getStormCellGain,
   getUpgrade,
@@ -37,6 +42,7 @@ import {
   logSumExp10,
   payCost,
   performClimateRewrite,
+  performFrontEchoReset,
   performMonsoonReset,
   performRainRankReset,
   performSkyHeartPulse,
@@ -46,22 +52,44 @@ import {
 
 const STEP_SECONDS = 1;
 const MAX_SECONDS = 12 * 60 * 60;
-const QUIET_WARNING_SECONDS = 10 * 60;
-const MAX_ACTIONS_PER_SECOND = 12;
+const QUIET_WARNING_SECONDS = 45 * 60;
+const MIN_MAJOR_STAGE_SECONDS = 25 * 60;
+const MAX_ACTIONS_PER_SECOND = 3;
 const RANK_MILESTONES = [1, 3, 6, 8, 10, 14, 16, 20, 25];
 const RUN_UPGRADE_IDS = UPGRADE_DEFINITIONS.map((upgrade) => upgrade.id);
 const PRIMARY_BALANCE_STRATEGIES = ["patient-multiplier-human"];
+const STORM_WINDOW_RUN_UPGRADES = [
+  "cloudTouch",
+  "dropletSeed",
+  "weatherAmplifier",
+  "rootWake",
+  "cloudBloom",
+  "windEye",
+  "heavyRain",
+  "monsoonPull",
+  "autoDrizzle",
+  "autoRank",
+  "rankCompression",
+  "monsoonFocus",
+  "stormMemory",
+  "pressureGaugeRun",
+  "frontRain",
+  "thunderReturn",
+  "overloadedRain",
+];
+const STORM_WINDOW_PRESSURE_UPGRADES = ["lowPressure", "updraft", "pressureGauge", "eyeWall", "frontCompression"];
+const STORM_WINDOW_STORM_UPGRADES = ["frontMemory", "thunderUpdraft", "rainOverload", "stormBatch", "windEyeRelic", "frontScar", "stormPrism"];
 
 const STAGE_WINDOWS = [
   { id: "rank1", label: "第 1 雨阶", min: 6 * 60, max: 10 * 60 },
   { id: "rank3", label: "第 3 雨阶", min: 12 * 60, max: 20 * 60 },
   { id: "rank6", label: "第 6 雨阶", min: 20 * 60, max: 30 * 60 },
   { id: "rank8", label: "第 8 雨阶", min: 26 * 60, max: 38 * 60 },
-  { id: "rank10", label: "第 10 雨阶", min: 32 * 60, max: 45 * 60 },
-  { id: "firstMonsoon", label: "第一次季风", min: 38 * 60, max: 60 * 60 },
-  { id: "firstStormFront", label: "第一风暴前线", min: 65 * 60, max: 105 * 60 },
-  { id: "firstClimateRewrite", label: "第一次气候改写", min: 95 * 60, max: 155 * 60 },
-  { id: "skyHeart", label: "1e308 终局", min: 120 * 60, max: 210 * 60 },
+  { id: "rank10", label: "第 10 雨阶", min: 32 * 60, max: 50 * 60 },
+  { id: "firstMonsoon", label: "第一次季风", min: 32 * 60, max: 60 * 60 },
+  { id: "firstStormFront", label: "第一风暴前线", min: 55 * 60, max: 2 * 60 * 60 },
+  { id: "firstClimateRewrite", label: "第一次气候改写", min: 90 * 60, max: 4 * 60 * 60 },
+  { id: "skyHeart", label: "1e308 终局", min: 2 * 60 * 60, max: 270 * 60 },
 ];
 
 const PROGRESS_MILESTONES = [
@@ -71,10 +99,21 @@ const PROGRESS_MILESTONES = [
   { id: "secondStormFront", label: "第二风暴前线", isReached: (state) => state.totalStormFronts >= 2 },
   { id: "thirdStormFront", label: "第三风暴前线", isReached: (state) => state.totalStormFronts >= 3 },
   { id: "firstClimateRewrite", label: "第一次气候改写", isReached: (state) => state.totalClimateRewrites >= 1 },
+  { id: "secondClimateRewrite", label: "第二次气候改写", isReached: (state) => state.totalClimateRewrites >= 2 },
   { id: "skyPulse1", label: "天空心脏脉冲 1", isReached: (state) => state.skyHeartPulseLevel >= 1 },
   { id: "skyPulse2", label: "天空心脏脉冲 2", isReached: (state) => state.skyHeartPulseLevel >= 2 },
   { id: "skyPulse3", label: "天空心脏脉冲 3", isReached: (state) => state.skyHeartPulseLevel >= 3 },
   { id: "skyHeart", label: "天空心脏点燃", isReached: (state) => state.skyHeartAwakened },
+];
+
+const MAJOR_STAGE_DURATION_WINDOWS = [
+  { id: "startToMonsoon1", label: "开始到第一次季风", start: null, end: "firstMonsoon" },
+  { id: "monsoon1ToStorm1", label: "第一次季风到第一风暴", start: "firstMonsoon", end: "firstStormFront" },
+  { id: "storm1ToStorm2", label: "第一风暴到第二风暴", start: "firstStormFront", end: "secondStormFront" },
+  { id: "storm2ToClimate1", label: "第二风暴到第一次气候改写", start: "secondStormFront", end: "firstClimateRewrite" },
+  { id: "climate1ToStorm3", label: "第一次气候改写到第三风暴", start: "firstClimateRewrite", end: "thirdStormFront" },
+  { id: "storm3ToClimate2", label: "第三风暴到第二次气候改写", start: "thirdStormFront", end: "secondClimateRewrite" },
+  { id: "climate2ToEnding", label: "第二次气候改写到终局", start: "secondClimateRewrite", end: "skyHeart" },
 ];
 
 const CANONICAL_STORM_ORDER = ["frontMemory", "thunderUpdraft", "rainOverload", "stormBatch", "windEyeRelic", "frontScar", "stormPrism"];
@@ -102,7 +141,8 @@ const strategies = [
     pressureOrder: ["pressureGauge", "lowPressure", "updraft", "eyeWall", "frontCompression"],
     stormOrder: CANONICAL_STORM_ORDER,
     climateOrder: ["condensationLaw", "deepRootLaw", "returningMonsoon", "stormWeaving", "cloudCoreRefraction", "skyHeartOmen", "climateCodex"],
-    resetFirst: false,
+    resetFirst: true,
+    resetRainRankBeforeRunUpgrades: true,
   },
   {
     name: "patient-multiplier-human",
@@ -150,7 +190,8 @@ const strategies = [
     pressureOrder: ["updraft", "eyeWall", "frontCompression", "pressureGauge", "lowPressure"],
     stormOrder: CANONICAL_STORM_ORDER,
     climateOrder: ["deepRootLaw", "condensationLaw", "stormWeaving", "cloudCoreRefraction", "skyHeartOmen", "returningMonsoon", "climateCodex"],
-    resetFirst: false,
+    resetFirst: true,
+    resetRainRankBeforeRunUpgrades: true,
   },
   {
     name: "comfort-first",
@@ -174,6 +215,7 @@ const strategies = [
     stormOrder: CANONICAL_STORM_ORDER,
     climateOrder: ["returningMonsoon", "condensationLaw", "deepRootLaw", "cloudCoreRefraction", "stormWeaving", "skyHeartOmen", "climateCodex"],
     resetFirst: true,
+    resetRainRankBeforeRunUpgrades: true,
   },
   {
     name: "bad-but-plausible",
@@ -197,6 +239,7 @@ const strategies = [
     stormOrder: CANONICAL_STORM_ORDER,
     climateOrder: ["condensationLaw", "returningMonsoon", "deepRootLaw", "stormWeaving", "skyHeartOmen", "cloudCoreRefraction", "climateCodex"],
     resetFirst: true,
+    resetRainRankBeforeRunUpgrades: true,
   },
   {
     name: "new-player-visible",
@@ -283,13 +326,13 @@ function simulateStrategy(strategy) {
   let skyHeartAt = null;
 
   for (let second = STEP_SECONDS; second <= MAX_SECONDS; second += STEP_SECONDS) {
-    tickState(state, STEP_SECONDS);
+    tickState(state, STEP_SECONDS, strategy);
     markRainRanks(state, rankAt, snapshots, second);
     markProgressMilestones(state, milestoneAt, snapshots, second);
 
     let actionTakenThisSecond = false;
     for (let actionIndex = 0; actionIndex < MAX_ACTIONS_PER_SECOND; actionIndex += 1) {
-      const action = runStrategyAction(state, strategy, second, purchases, events);
+      const action = runStrategyAction(state, strategy, second, purchases, events, snapshots);
       if (!action) {
         break;
       }
@@ -340,7 +383,7 @@ function simulateStrategy(strategy) {
   };
 }
 
-function runStrategyAction(state, strategy, second, purchases, events) {
+function runStrategyAction(state, strategy, second, purchases, events, snapshots) {
   if (canAwakenSkyHeart(state)) {
     Object.assign(state, awakenSkyHeart(state));
     events.push({ second, type: "ending", text: "天空心脏点燃" });
@@ -367,12 +410,20 @@ function runStrategyAction(state, strategy, second, purchases, events) {
     const milestone = getCurrentMainlineMilestone(state);
     const beforeStormCells = state.stormCells;
     const beforeStormFronts = state.totalStormFronts;
+    snapshots.push(createSnapshot(second, `${milestone.title}前`, state));
     Object.assign(state, performStormFrontReset(state));
     const spentOnTrunk = gainedStormCells - (state.stormCells - beforeStormCells);
     const trunkText = beforeStormFronts === 0 && spentOnTrunk > 0
       ? `，${spentOnTrunk} 点转入风暴主干`
       : "";
     events.push({ second, type: "storm", text: `${milestone.title}，+${gainedStormCells} 风暴胞${trunkText}` });
+    return true;
+  }
+
+  if (canRunFrontEchoReset(state)) {
+    const beforeEchoes = state.frontEchoesThisFront;
+    Object.assign(state, performFrontEchoReset(state));
+    events.push({ second, type: "frontEcho", text: `前线回响 ${beforeEchoes} -> ${state.frontEchoesThisFront}` });
     return true;
   }
 
@@ -445,12 +496,34 @@ function pushRainRankEvent(events, second, beforeRank, afterRank) {
   }
 }
 
-function tickState(state, seconds) {
-  if (state.clickCooldownRemaining <= 0) {
+function tickState(state, seconds, strategy) {
+  if (shouldManuallyTouchCloud(state, strategy)) {
     Object.assign(state, applyCloudTouch(state));
   }
 
   Object.assign(state, runTick(state, seconds));
+}
+
+function shouldManuallyTouchCloud(state, strategy) {
+  if (strategy.manualClickPolicy === "never" || state.clickCooldownRemaining > 0) {
+    return false;
+  }
+
+  if (state.totalMonsoonCycles > 0) {
+    return false;
+  }
+
+  const passiveLog = calculateWeatherPerSecondLog(state);
+  const clickAverageLog = log10Safe(getCloudTouchAmount(state) / getClickCooldownSeconds(state));
+  if (!Number.isFinite(clickAverageLog)) {
+    return false;
+  }
+
+  if (!Number.isFinite(passiveLog)) {
+    return true;
+  }
+
+  return clickAverageLog >= passiveLog - 0.3;
 }
 
 function buyPermanentUpgrade(state, strategy, second, purchases) {
@@ -688,24 +761,26 @@ function getPatientRunOrder(state) {
   const requiredRanks = milestone.requiredRainRanks ?? 10;
   const firstInfrastructure = getPatientFirstInfrastructureOrder(state);
   const producerBatch = getPatientProducerBatchOrder(state);
+  const bestValueUpgrade = choosePatientRunUpgradeByValue(state);
 
   if (state.rainRanks < 1) {
     return uniqueUpgradeOrder(["weatherAmplifier", "dropletSeed", ...clickBridge]);
   }
 
   if (state.rainRanks < 3) {
-    return uniqueUpgradeOrder([...firstInfrastructure, "weatherAmplifier", "dropletSeed", ...producerBatch, ...clickBridge]);
+    return uniqueUpgradeOrder([bestValueUpgrade, ...firstInfrastructure, "weatherAmplifier", "dropletSeed", ...producerBatch, ...clickBridge]);
   }
 
   if (state.rainRanks < 6) {
-    return uniqueUpgradeOrder([...firstInfrastructure, "weatherAmplifier", "dropletSeed", ...producerBatch, ...clickBridge]);
+    return uniqueUpgradeOrder([bestValueUpgrade, ...firstInfrastructure, "weatherAmplifier", "dropletSeed", ...producerBatch, ...clickBridge]);
   }
 
   if (state.rainRanks < requiredRanks) {
-    return uniqueUpgradeOrder(["weatherAmplifier", "heavyRain", ...firstInfrastructure, ...producerBatch, "dropletSeed", ...clickBridge, "rankCompression"]);
+    return uniqueUpgradeOrder([bestValueUpgrade, "weatherAmplifier", "heavyRain", ...firstInfrastructure, ...producerBatch, "dropletSeed", ...clickBridge, "rankCompression"]);
   }
 
   return uniqueUpgradeOrder([
+    bestValueUpgrade,
     "monsoonPull",
     "weatherAmplifier",
     "heavyRain",
@@ -746,7 +821,223 @@ function shouldBatchBuyProducerUpgrade(state, upgradeId) {
     return false;
   }
 
+  if (state.totalStormFronts > 0) {
+    return getPatientRunUpgradeValue(state, upgradeId).score >= getPatientBuyNowThreshold(state) + 0.4;
+  }
+
   return log10Safe(state.resources.weather) >= log10Safe(weatherCost) + 2;
+}
+
+function choosePatientRunUpgradeByValue(state) {
+  const best = getPatientAffordableRunUpgradeValues(state)[0];
+  if (!best || best.score < getPatientBuyNowThreshold(state)) {
+    return null;
+  }
+
+  return best.upgradeId;
+}
+
+function hasStrongPatientAffordableUpgrade(state) {
+  const best = getPatientAffordableRunUpgradeValues(state)[0];
+  return Boolean(best && best.score >= getPatientBuyNowThreshold(state));
+}
+
+function getPatientAffordableRunUpgradeValues(state) {
+  return getPatientRunUpgradeCandidates(state)
+    .filter((upgradeId) => canBuyRunUpgrade(state, upgradeId))
+    .map((upgradeId) => getPatientRunUpgradeValue(state, upgradeId))
+    .filter((value) => Number.isFinite(value.score))
+    .sort((left, right) => right.score - left.score);
+}
+
+function getPatientRunUpgradeCandidates(state) {
+  const candidates = [
+    "weatherAmplifier",
+    "heavyRain",
+    "monsoonPull",
+    "windEye",
+    "cloudBloom",
+    "rootWake",
+    "dropletSeed",
+    "monsoonFocus",
+    "stormMemory",
+    "pressureGaugeRun",
+    "frontRain",
+    "thunderReturn",
+    "overloadedRain",
+    "autoRank",
+    "rankCompression",
+    "autoDrizzle",
+  ];
+
+  if (shouldInvestInCloudTouch(state)) {
+    candidates.push("cloudTouch");
+  }
+
+  return uniqueUpgradeOrder(candidates);
+}
+
+function getPatientRunUpgradeValue(state, upgradeId) {
+  if (!RUN_UPGRADE_IDS.includes(upgradeId) || !isUpgradeVisible(state, upgradeId)) {
+    return { upgradeId, score: Number.NEGATIVE_INFINITY };
+  }
+
+  const upgrade = getUpgrade(upgradeId);
+  const cost = getUpgradeCost(state, upgrade);
+  const projected = cloneState(state);
+  projected.resources = payCost(projected.resources, cost);
+  projected.upgrades[upgradeId] += 1;
+
+  const weights = getPatientRoiWeights(state);
+  const rateGain = getEffectiveRateGainLog(state, projected);
+  const waitCompression = getStrategicWaitCompressionLog(state, projected);
+  const paybackScore = getPatientPaybackScore(state, projected, cost);
+  const unlockBias = projected.upgrades[upgradeId] === 1 ? getUnlockBias(upgradeId) * 0.15 : 0;
+  const roleBias = getPatientRoleBias(state, upgradeId);
+  const costPenalty = Math.max(0, log10ResourceCost(cost)) * weights.costPenalty;
+
+  const score = rateGain * weights.rate
+    + waitCompression * weights.wait
+    + paybackScore * weights.payback
+    + unlockBias
+    + roleBias
+    - costPenalty;
+
+  return { upgradeId, score, rateGain, waitCompression, paybackScore };
+}
+
+function getPatientRoiWeights(state) {
+  const milestone = getCurrentMainlineMilestone(state);
+  const requiredRanks = milestone.requiredRainRanks ?? 0;
+  const resetTargetReady = state.rainRanks >= requiredRanks;
+  const postStorm = state.totalStormFronts > 0;
+
+  return {
+    rate: postStorm ? 7 : 5,
+    wait: resetTargetReady ? 8 : 5,
+    payback: postStorm ? 1.8 : 1.2,
+    costPenalty: postStorm ? 0.012 : 0.02,
+  };
+}
+
+function getPatientRoleBias(state, upgradeId) {
+  const postStorm = state.totalStormFronts > 0;
+  const milestone = getCurrentMainlineMilestone(state);
+  const requiredRanks = milestone.requiredRainRanks ?? 0;
+
+  if (upgradeId === "cloudTouch") {
+    return -2;
+  }
+
+  if (postStorm && ["monsoonPull", "weatherAmplifier", "heavyRain"].includes(upgradeId)) {
+    return 1.2;
+  }
+
+  if (postStorm && ["rootWake", "cloudBloom", "windEye"].includes(upgradeId)) {
+    return state.rainRanks >= requiredRanks ? 0.9 : 0.5;
+  }
+
+  if (postStorm && ["pressureGaugeRun", "frontRain", "thunderReturn", "overloadedRain"].includes(upgradeId)) {
+    return 0.6;
+  }
+
+  if (upgradeId === "autoDrizzle") {
+    return postStorm ? -0.4 : -0.8;
+  }
+
+  return 0;
+}
+
+function getEffectiveRateGainLog(state, projected) {
+  const before = calculateEffectiveWeatherGainLog(state);
+  const after = calculateEffectiveWeatherGainLog(projected);
+
+  if (!Number.isFinite(after) && !Number.isFinite(before)) {
+    return 0;
+  }
+
+  if (!Number.isFinite(before)) {
+    return Math.max(0, after);
+  }
+
+  return Math.max(0, after - before);
+}
+
+function getStrategicWaitCompressionLog(state, projected) {
+  const before = getStrategicTargetWaitLog(state);
+  const after = getStrategicTargetWaitLog(projected);
+
+  if (!Number.isFinite(before) && !Number.isFinite(after)) {
+    return getEffectiveRateGainLog(state, projected) * 0.35;
+  }
+
+  if (!Number.isFinite(before)) {
+    return Math.max(0, 8 - after);
+  }
+
+  if (!Number.isFinite(after)) {
+    return 0;
+  }
+
+  return Math.max(0, before - after);
+}
+
+function getStrategicTargetWaitLog(state) {
+  const targetExp = getPatientStrategicTargetExp(state);
+  const currentExp = log10Safe(state.resources.weather);
+  if (currentExp >= targetExp) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  const gainLog = calculateEffectiveWeatherGainLog(state);
+  if (!Number.isFinite(gainLog)) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return targetExp - gainLog;
+}
+
+function getPatientStrategicTargetExp(state) {
+  const milestone = getCurrentMainlineMilestone(state);
+  const requiredRanks = milestone.requiredRainRanks ?? 0;
+  if (state.rainRanks < requiredRanks) {
+    return Math.min(getRainRankRequirementExp(state), getCurrentMilestoneTargetExp(state));
+  }
+
+  return getCurrentMilestoneTargetExp(state);
+}
+
+function getPatientPaybackScore(state, projected, cost) {
+  const weatherCost = cost.weather ?? 0;
+  if (weatherCost <= 0) {
+    return 0;
+  }
+
+  const before = calculateEffectiveWeatherGainLog(state);
+  const after = calculateEffectiveWeatherGainLog(projected);
+  if (!Number.isFinite(before) || !Number.isFinite(after) || after <= before) {
+    return 0;
+  }
+
+  const deltaRateLog = after + Math.log10(1 - 10 ** Math.min(0, before - after));
+  const paybackLog = log10Safe(weatherCost) - deltaRateLog;
+  if (!Number.isFinite(paybackLog)) {
+    return 0;
+  }
+
+  return Math.max(-2, Math.min(4, 3 - paybackLog));
+}
+
+function getPatientBuyNowThreshold(state) {
+  if (state.totalStormFronts > 0) {
+    return 2.4;
+  }
+
+  if (state.totalMonsoonCycles > 0) {
+    return 2.8;
+  }
+
+  return 3.4;
 }
 
 function getNewPlayerVisibleRunOrder(state) {
@@ -819,6 +1110,10 @@ function shouldPatientWaitForRunUpgrade(state) {
 
   if (hasAffordableFirstLevelInfrastructure(state)) {
     return null;
+  }
+
+  if (hasStrongPatientAffordableUpgrade(state)) {
+    return false;
   }
 
   if (shouldWaitForPatientMultiplierRollout(state, "weatherAmplifier", 90, 0.18)) {
@@ -1121,6 +1416,7 @@ function markProgressMilestones(state, milestoneAt, snapshots, second) {
 
 function createSnapshot(second, label, state) {
   const layerBonus = getLayerBonusBreakdown(state);
+  const clickAverage = getCloudTouchAmount(state) / getClickCooldownSeconds(state);
   return {
     second,
     label,
@@ -1138,7 +1434,20 @@ function createSnapshot(second, label, state) {
     stormCells: state.stormCells,
     climateThreads: state.climateThreads,
     layerBonus,
+    componentLogs: {
+      passive: log10Safe(getPassiveWeatherGain(state)),
+      autoDrizzle: log10Safe(getAutoDrizzleGain(state)),
+      clickAverage: log10Safe(clickAverage),
+      producerMultiplier: log10Safe(getProducerMultiplier(state)),
+    },
+    runLevels: pickLevels(state.upgrades, STORM_WINDOW_RUN_UPGRADES),
+    pressureLevels: pickLevels(state.pressureUpgrades, STORM_WINDOW_PRESSURE_UPGRADES),
+    stormLevels: pickLevels(state.stormUpgrades, STORM_WINDOW_STORM_UPGRADES),
   };
+}
+
+function pickLevels(levels, ids) {
+  return Object.fromEntries(ids.map((id) => [id, levels[id] ?? 0]));
 }
 
 function getMaxLevels(purchases) {
@@ -1221,6 +1530,18 @@ function getBottleneck(state) {
   }
 
   if (currentWeatherExp < targetExp) {
+    if (milestone.id === "storm_front_2" && state.frontEchoesThisFront < 5) {
+      const echoRequirementExp = getFrontEchoRequirementExp(state);
+      if (
+        state.totalStormFronts === 1
+        && state.rainRanks >= requiredRanks
+        && state.monsoonCyclesInFront >= (milestone.requiredMonsoonsInFront ?? 0)
+        && currentWeatherExp < targetExp
+      ) {
+        return `${Math.max(0, echoRequirementExp - currentWeatherExp).toFixed(1)} orders to 前线回响`;
+      }
+    }
+
     return `${(targetExp - currentWeatherExp).toFixed(1)} orders to ${milestone.title}`;
   }
 
@@ -1264,6 +1585,8 @@ function printResult(result, gates) {
   }
   console.log(`  max levels: ${formatMaxLevels(result.maxLevels)}`);
   console.log(`  largest rate jumps: ${formatLargestRateJumps(result)}`);
+  printMonsoonToStormDiagnostics(result);
+  printStormWindowDiagnostics(result);
   console.log("  layer snapshots:");
   for (const snapshot of compactList(result.snapshots, 10, 8)) {
     if (snapshot === "...") {
@@ -1301,36 +1624,40 @@ function evaluateBalanceGates(result) {
   const gates = [];
 
   if (PRIMARY_BALANCE_STRATEGIES.includes(result.name)) {
-    const earliestEnding = result.name === "guided-human" ? 100 * 60 : 120 * 60;
-    pushWindowGate(gates, "fail", `${result.name} ending window`, result.skyHeartAt, earliestEnding, 210 * 60);
-    pushQuietGate(gates, "fail", `${result.name} quiet time`, result.maxQuietSeconds, 10 * 60);
+    pushWindowGate(gates, "fail", `${result.name} ending window`, result.skyHeartAt, 2 * 60 * 60, 270 * 60);
+    pushQuietGate(gates, "fail", `${result.name} quiet time`, result.maxQuietSeconds, QUIET_WARNING_SECONDS);
     pushStageWindowWarnings(gates, result);
+    pushMajorStageDurationWarnings(gates, result);
     return gates;
   }
 
   if (result.name === "guided-human") {
-    pushWindowGate(gates, "warning", "guided-human ending window", result.skyHeartAt, 100 * 60, 210 * 60);
-    pushQuietGate(gates, "warning", "guided-human quiet time", result.maxQuietSeconds, 10 * 60);
+    pushWindowGate(gates, "warning", "guided-human ending window", result.skyHeartAt, 2 * 60 * 60, 270 * 60);
+    pushQuietGate(gates, "warning", "guided-human quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
     pushStageWindowWarnings(gates, result);
+    pushMajorStageDurationWarnings(gates, result);
     return gates;
   }
 
   if (result.name === "comfort-first") {
-    pushLatestGate(gates, "fail", "comfort ending latest", result.skyHeartAt, 4 * 60 * 60);
-    pushEarliestGate(gates, "warning", "comfort ending too fast", result.skyHeartAt, 150 * 60);
-    pushQuietGate(gates, "fail", "comfort quiet time", result.maxQuietSeconds, 10 * 60);
+    pushLatestGate(gates, "warning", "comfort ending latest", result.skyHeartAt, 6 * 60 * 60);
+    pushEarliestGate(gates, "warning", "comfort ending too fast", result.skyHeartAt, 2 * 60 * 60);
+    pushQuietGate(gates, "fail", "comfort quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
+    pushMajorStageDurationWarnings(gates, result);
     return gates;
   }
 
   if (result.name === "bad-but-plausible") {
-    pushLatestGate(gates, "fail", "bad route reaches climate", result.milestoneAt.firstClimateRewrite, 4 * 60 * 60);
-    pushQuietGate(gates, "fail", "bad route quiet time", result.maxQuietSeconds, 12 * 60);
-    pushLatestGate(gates, "warning", "bad route ending latest", result.skyHeartAt, 5 * 60 * 60);
+    pushLatestGate(gates, "fail", "bad route reaches climate", result.milestoneAt.firstClimateRewrite, 6 * 60 * 60);
+    pushQuietGate(gates, "fail", "bad route quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
+    pushLatestGate(gates, "warning", "bad route ending latest", result.skyHeartAt, 270 * 60);
+    pushMajorStageDurationWarnings(gates, result);
     return gates;
   }
 
   if (result.name === "roi-greedy") {
-    pushEarliestGate(gates, "warning", "roi-greedy exposes fast ending", result.skyHeartAt, 100 * 60);
+    pushEarliestGate(gates, "warning", "roi-greedy exposes fast ending", result.skyHeartAt, 2 * 60 * 60);
+    pushMajorStageDurationWarnings(gates, result);
     if (!result.skyHeartAt) {
       gates.push({ status: "warning", label: "roi-greedy ending", detail: "压力路线未通关，仅报告不阻断。" });
     }
@@ -1338,14 +1665,16 @@ function evaluateBalanceGates(result) {
   }
 
   if (result.name === "new-player-visible") {
-    pushLatestGate(gates, "warning", "new player reaches climate", result.milestoneAt.firstClimateRewrite, 4 * 60 * 60);
+    pushLatestGate(gates, "warning", "new player reaches climate", result.milestoneAt.firstClimateRewrite, 6 * 60 * 60);
     pushEarliestGate(gates, "warning", "new player ending too fast", result.skyHeartAt, 120 * 60);
-    pushQuietGate(gates, "warning", "new player quiet time", result.maxQuietSeconds, 12 * 60);
+    pushQuietGate(gates, "warning", "new player quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
+    pushMajorStageDurationWarnings(gates, result);
   }
 
   if (result.name === "misled-storm-player") {
-    pushLatestGate(gates, "warning", "misled storm reaches storm2", result.milestoneAt.secondStormFront, 4 * 60 * 60);
-    pushQuietGate(gates, "warning", "misled storm quiet time", result.maxQuietSeconds, 12 * 60);
+    pushLatestGate(gates, "warning", "misled storm reaches storm2", result.milestoneAt.secondStormFront, 6 * 60 * 60);
+    pushQuietGate(gates, "warning", "misled storm quiet time", result.maxQuietSeconds, QUIET_WARNING_SECONDS);
+    pushMajorStageDurationWarnings(gates, result);
     if (!hasStormTrunk(result.state)) {
       gates.push({
         status: "warning",
@@ -1362,6 +1691,36 @@ function pushStageWindowWarnings(gates, result) {
   for (const window of STAGE_WINDOWS) {
     pushWindowGate(gates, "warning", window.label, getStageTime(result, window.id), window.min, window.max);
   }
+}
+
+function pushMajorStageDurationWarnings(gates, result) {
+  for (const window of MAJOR_STAGE_DURATION_WINDOWS) {
+    const duration = getMajorStageDuration(result, window);
+    if (duration === null) {
+      gates.push({
+        status: "warning",
+        label: `${window.label}阶段时长`,
+        detail: `未达成完整阶段，目标至少 ${formatTime(MIN_MAJOR_STAGE_SECONDS)}。`,
+      });
+      continue;
+    }
+
+    gates.push({
+      status: duration >= MIN_MAJOR_STAGE_SECONDS ? "pass" : "warning",
+      label: `${window.label}阶段时长`,
+      detail: `${formatTime(duration)}，目标至少 ${formatTime(MIN_MAJOR_STAGE_SECONDS)}。`,
+    });
+  }
+}
+
+function getMajorStageDuration(result, window) {
+  const start = window.start === null ? 0 : getStageTime(result, window.start);
+  const end = getStageTime(result, window.end);
+  if (start === null || start === undefined || end === null || end === undefined || end < start) {
+    return null;
+  }
+
+  return end - start;
 }
 
 function getStageTime(result, stageId) {
@@ -1493,15 +1852,13 @@ function formatMilestoneTimeline(result) {
 }
 
 function formatStageDurations(result) {
-  const entries = [
-    ["start->monsoon1", null, result.milestoneAt.firstMonsoon],
-    ["monsoon1->storm1", result.milestoneAt.firstMonsoon, result.milestoneAt.firstStormFront],
-    ["storm1->storm2", result.milestoneAt.firstStormFront, result.milestoneAt.secondStormFront],
-    ["storm2->climate1", result.milestoneAt.secondStormFront, result.milestoneAt.firstClimateRewrite],
-    ["climate1->ending", result.milestoneAt.firstClimateRewrite, result.skyHeartAt],
-  ];
-
-  return entries.map(([label, start, end]) => `${label} ${formatDuration(start, end)}`).join(" | ");
+  return MAJOR_STAGE_DURATION_WINDOWS
+    .map((window) => {
+      const start = window.start === null ? 0 : getStageTime(result, window.start);
+      const end = getStageTime(result, window.end);
+      return `${window.id} ${formatDuration(start, end)}`;
+    })
+    .join(" | ");
 }
 
 function formatDuration(start, end) {
@@ -1539,6 +1896,161 @@ function formatLargestRateJumps(result) {
       `${formatTime(purchase.second)} ${purchase.label} +${purchase.deltaOrders.toFixed(1)} orders`
     ))
     .join(", ");
+}
+
+function printStormWindowDiagnostics(result) {
+  const storm1At = result.milestoneAt.firstStormFront;
+  const storm2At = result.milestoneAt.secondStormFront;
+  if (!storm1At || !storm2At) {
+    console.log("  storm1->storm2 diagnostic: unavailable");
+    return;
+  }
+
+  const startSnapshot = findSnapshot(result.snapshots, "第一风暴前线");
+  const endSnapshot = findSnapshot(result.snapshots, "第二风暴前线前") ?? findSnapshot(result.snapshots, "第二风暴前线");
+  if (!startSnapshot || !endSnapshot) {
+    console.log("  storm1->storm2 diagnostic: missing snapshots");
+    return;
+  }
+
+  const windowPurchases = result.purchases.filter((purchase) => (
+    purchase.second > storm1At && purchase.second <= storm2At
+  ));
+  const rateDelta = endSnapshot.rateLog - startSnapshot.rateLog;
+  const bestDelta = endSnapshot.bestWeatherExp - startSnapshot.bestWeatherExp;
+
+  console.log("  storm1->storm2 diagnostic:");
+  console.log(
+    `    window ${formatDuration(storm1At, storm2At)} | rate ${formatLogValue(startSnapshot.rateLog)}/s -> ${formatLogValue(endSnapshot.rateLog)}/s `
+    + `(${formatSignedOrders(rateDelta)}) | best ${formatLogValue(startSnapshot.bestWeatherExp)} -> ${formatLogValue(endSnapshot.bestWeatherExp)} `
+    + `(${formatSignedOrders(bestDelta)})`,
+  );
+  console.log(`    components: ${formatComponentDelta(startSnapshot.componentLogs, endSnapshot.componentLogs)}`);
+  console.log(`    layer bonus: ${formatLayerDelta(startSnapshot.layerBonus, endSnapshot.layerBonus)}`);
+  console.log(`    run levels: ${formatLevelDeltas(startSnapshot.runLevels, endSnapshot.runLevels)}`);
+  console.log(`    pressure levels: ${formatLevelDeltas(startSnapshot.pressureLevels, endSnapshot.pressureLevels)}`);
+  console.log(`    storm levels: ${formatLevelDeltas(startSnapshot.stormLevels, endSnapshot.stormLevels)}`);
+  console.log(`    purchases: ${formatPurchaseSummary(filterDiagnosticPurchases(windowPurchases)) || "none"}`);
+  console.log(`    top purchase jumps: ${formatTopWindowPurchaseJumps(windowPurchases)}`);
+}
+
+function printMonsoonToStormDiagnostics(result) {
+  const monsoon1At = result.milestoneAt.firstMonsoon;
+  const storm1At = result.milestoneAt.firstStormFront;
+  if (!monsoon1At || !storm1At) {
+    console.log("  monsoon1->storm1 diagnostic: unavailable");
+    return;
+  }
+
+  const startSnapshot = findSnapshot(result.snapshots, "第一次季风");
+  const endSnapshot = findSnapshot(result.snapshots, "第一风暴前线前") ?? findSnapshot(result.snapshots, "第一风暴前线");
+  if (!startSnapshot || !endSnapshot) {
+    console.log("  monsoon1->storm1 diagnostic: missing snapshots");
+    return;
+  }
+
+  const windowPurchases = result.purchases.filter((purchase) => (
+    purchase.second > monsoon1At && purchase.second <= storm1At
+  ));
+  const rateDelta = endSnapshot.rateLog - startSnapshot.rateLog;
+  const bestDelta = endSnapshot.bestWeatherExp - startSnapshot.bestWeatherExp;
+
+  console.log("  monsoon1->storm1 diagnostic:");
+  console.log(
+    `    window ${formatDuration(monsoon1At, storm1At)} | rate ${formatLogValue(startSnapshot.rateLog)}/s -> ${formatLogValue(endSnapshot.rateLog)}/s `
+    + `(${formatSignedOrders(rateDelta)}) | best ${formatLogValue(startSnapshot.bestWeatherExp)} -> ${formatLogValue(endSnapshot.bestWeatherExp)} `
+    + `(${formatSignedOrders(bestDelta)})`,
+  );
+  console.log(`    components: ${formatComponentDelta(startSnapshot.componentLogs, endSnapshot.componentLogs)}`);
+  console.log(`    layer bonus: ${formatLayerDelta(startSnapshot.layerBonus, endSnapshot.layerBonus)}`);
+  console.log(`    run levels: ${formatLevelDeltas(startSnapshot.runLevels, endSnapshot.runLevels)}`);
+  console.log(`    pressure levels: ${formatLevelDeltas(startSnapshot.pressureLevels, endSnapshot.pressureLevels)}`);
+  console.log(`    storm levels: ${formatLevelDeltas(startSnapshot.stormLevels, endSnapshot.stormLevels)}`);
+  console.log(`    purchases: ${formatPurchaseSummary(filterDiagnosticPurchases(windowPurchases)) || "none"}`);
+  console.log(`    top purchase jumps: ${formatTopWindowPurchaseJumps(windowPurchases)}`);
+}
+
+function findSnapshot(snapshots, label) {
+  return snapshots.find((snapshot) => snapshot.label === label);
+}
+
+function filterDiagnosticPurchases(purchases) {
+  return purchases.filter((purchase) => {
+    if (purchase.layer === "run") {
+      return STORM_WINDOW_RUN_UPGRADES.includes(purchase.id);
+    }
+
+    if (purchase.layer === "pressure") {
+      return STORM_WINDOW_PRESSURE_UPGRADES.includes(purchase.id);
+    }
+
+    if (purchase.layer === "storm") {
+      return STORM_WINDOW_STORM_UPGRADES.includes(purchase.id);
+    }
+
+    return false;
+  });
+}
+
+function formatTopWindowPurchaseJumps(purchases) {
+  const jumps = purchases
+    .map((purchase) => ({
+      ...purchase,
+      deltaOrders: purchase.afterRateLog - purchase.beforeRateLog,
+    }))
+    .filter((purchase) => Number.isFinite(purchase.deltaOrders) && purchase.deltaOrders > 0.05)
+    .sort((left, right) => right.deltaOrders - left.deltaOrders)
+    .slice(0, 8);
+
+  if (jumps.length <= 0) {
+    return "none";
+  }
+
+  return jumps
+    .map((purchase) => `${formatTime(purchase.second)} ${purchase.layer}.${purchase.id} Lv.${purchase.level} ${formatSignedOrders(purchase.deltaOrders)}`)
+    .join(", ");
+}
+
+function formatComponentDelta(before, after) {
+  return [
+    ["passive", "passive"],
+    ["autoDrizzle", "auto"],
+    ["clickAverage", "click/s"],
+    ["producerMultiplier", "producer"],
+  ]
+    .map(([key, label]) => `${label} ${formatOrders(before[key])}->${formatOrders(after[key])} (${formatSignedOrders(after[key] - before[key])})`)
+    .join(" | ");
+}
+
+function formatLayerDelta(before, after) {
+  return ["cloudCore", "pressure", "storm", "climate", "skyHeart"]
+    .map((key) => `${key} +${before[key].toFixed(1)}->+${after[key].toFixed(1)} (${formatSignedOrders(after[key] - before[key])})`)
+    .join(" | ");
+}
+
+function formatLevelDeltas(before, after) {
+  const deltas = Object.keys(after)
+    .filter((key) => after[key] !== before[key])
+    .map((key) => `${key} ${before[key]}->${after[key]}`);
+
+  return deltas.length > 0 ? deltas.join(", ") : "none";
+}
+
+function formatSignedOrders(value) {
+  if (!Number.isFinite(value)) {
+    return "n/a";
+  }
+
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(1)} orders`;
+}
+
+function formatOrders(value) {
+  if (!Number.isFinite(value)) {
+    return "-inf";
+  }
+
+  return `${value.toFixed(2)} orders`;
 }
 
 function getLargestSnapshotRateJumps(snapshots) {

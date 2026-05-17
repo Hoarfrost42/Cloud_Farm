@@ -48,6 +48,7 @@ export function createInitialState(
       | "monsoonCyclesInFront"
       | "pressure"
       | "totalPressureSpentThisFront"
+      | "frontEchoesThisFront"
       | "stormCells"
       | "totalStormCells"
       | "totalStormFronts"
@@ -99,6 +100,7 @@ export function createInitialState(
     monsoonCyclesInFront: meta?.monsoonCyclesInFront ?? 0,
     pressure: meta?.pressure ?? 0,
     totalPressureSpentThisFront: meta?.totalPressureSpentThisFront ?? 0,
+    frontEchoesThisFront: meta?.frontEchoesThisFront ?? 0,
     stormCells: meta?.stormCells ?? 0,
     totalStormCells: meta?.totalStormCells ?? meta?.stormCells ?? 0,
     totalStormFronts: meta?.totalStormFronts ?? 0,
@@ -146,6 +148,7 @@ export function normalizeState(savedState: Partial<WeatherReactorState>): Weathe
     monsoonCyclesInFront: normalizeNumber(savedState.monsoonCyclesInFront),
     pressure: normalizeNumber(savedState.pressure),
     totalPressureSpentThisFront: normalizeNumber(savedState.totalPressureSpentThisFront),
+    frontEchoesThisFront: normalizeNumber(savedState.frontEchoesThisFront),
     stormCells: normalizeNumber(savedState.stormCells),
     totalStormCells: Math.max(normalizeNumber(savedState.totalStormCells), normalizeNumber(savedState.stormCells)),
     totalStormFronts: normalizeNumber(savedState.totalStormFronts),

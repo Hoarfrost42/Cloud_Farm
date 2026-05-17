@@ -1,0 +1,776 @@
+import {
+  MONSOON_RAIN_RANK_REQUIREMENT,
+  RESOURCE_LABELS,
+} from "./constants.ts";
+import {
+  canAwakenSkyHeart,
+  canBuySkyHeartPulse,
+  canClaimRainRank,
+  canRunClimateRewrite,
+  canRunFrontEchoReset,
+  canRunMonsoon,
+  canRunStormFront,
+  getClimateThreadGain,
+  getCloudCoreGain,
+  getCurrentMainlineMilestone,
+  getCurrentMilestoneTargetExp,
+  getFrontEchoGain,
+  getFrontEchoMaxCount,
+  getFrontEchoRequirementExp,
+  getMonsoonWeatherTarget,
+  getRainRankRequirement,
+  getSkyHeartProgress,
+  getStormCellGain,
+} from "./resets.ts";
+import {
+  formatNumber,
+  formatRate,
+} from "./format.ts";
+import { calculateRates } from "./formulas.ts";
+import { log10Safe } from "./logNumbers.ts";
+import {
+  UPGRADE_GROUPS,
+  getUpgrade,
+  getUpgradeCost,
+  isRunUpgradeMaxed,
+  isUpgradeVisible,
+} from "./upgrades.ts";
+import type {
+  ResourceKey,
+  UpgradeId,
+  WeatherReactorState,
+} from "./types.ts";
+
+export type IslandMoodId =
+  | "dryStart"
+  | "firstRain"
+  | "rootedRain"
+  | "windEye"
+  | "monsoon"
+  | "stormFront"
+  | "climateRewrite"
+  | "skyHeart";
+
+export type VisibleHudResourceId =
+  | ResourceKey
+  | "rainRanks"
+  | "monsoonCycles"
+  | "cloudCores"
+  | "pressure"
+  | "stormCells"
+  | "climateThreads"
+  | "skyHeart";
+
+export type OverlayId = "none" | "resources" | "upgrades" | "formula" | "menu";
+
+export type MainTabId =
+  | "reactor"
+  | "runUpgrades"
+  | "resets"
+  | "resources"
+  | "atlas"
+  | "formula"
+  | "settings";
+
+export interface MainTabDefinition {
+  id: MainTabId;
+  label: string;
+  ariaDescription: string;
+  tier: "current" | "loop" | "archive" | "deep" | "system";
+}
+
+export type PrimaryActionId =
+  | "touchCloud"
+  | "claimRainRank"
+  | "runMonsoon"
+  | "runStormFront"
+  | "runFrontEcho"
+  | "runClimateRewrite"
+  | "buySkyHeartPulse"
+  | "awakenSkyHeart";
+
+export interface IslandMood {
+  id: IslandMoodId;
+  title: string;
+  subtitle: string;
+  shellClassName: string;
+  stageClassName: string;
+  weatherEffect: "none" | "rain" | "wind" | "storm" | "aurora";
+}
+
+export interface GoalViewModel {
+  title: string;
+  description: string;
+  hint?: string;
+  progress: number;
+}
+
+export interface PrimaryActionViewModel {
+  id: PrimaryActionId;
+  label: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+  progress: number;
+  rewardText?: string;
+}
+
+export interface HudResourceViewModel {
+  id: VisibleHudResourceId;
+  label: string;
+  value: string;
+  detail?: string;
+}
+
+export type ResourceSectionId = "run" | "reset" | "meta" | "front" | "storm" | "climate" | "endgame";
+
+export interface ResourceLedgerItem {
+  id: VisibleHudResourceId;
+  label: string;
+  value: string;
+  rate?: string;
+  detail?: string;
+  emphasis?: "primary" | "normal" | "muted";
+}
+
+export interface ResourceLedgerSection {
+  id: ResourceSectionId;
+  title: string;
+  items: ResourceLedgerItem[];
+}
+
+const MOODS: Record<IslandMoodId, IslandMood> = {
+  dryStart: {
+    id: "dryStart",
+    title: "薄云初醒",
+    subtitle: "空岛还很安静，第一场雨正在云层里聚集。",
+    shellClassName: "mood-dry-start",
+    stageClassName: "stage-dry-start",
+    weatherEffect: "none",
+  },
+  firstRain: {
+    id: "firstRain",
+    title: "细雨落岛",
+    subtitle: "雨阶开始凝结，天气活力第一次形成循环。",
+    shellClassName: "mood-first-rain",
+    stageClassName: "stage-first-rain",
+    weatherEffect: "rain",
+  },
+  rootedRain: {
+    id: "rootedRain",
+    title: "根系复苏",
+    subtitle: "雨滴唤醒了土壤，生态开始把天气留在岛上。",
+    shellClassName: "mood-rooted-rain",
+    stageClassName: "stage-rooted-rain",
+    weatherEffect: "rain",
+  },
+  windEye: {
+    id: "windEye",
+    title: "风眼成环",
+    subtitle: "云团与根系互相牵引，第一条天气生产链闭合。",
+    shellClassName: "mood-wind-eye",
+    stageClassName: "stage-wind-eye",
+    weatherEffect: "wind",
+  },
+  monsoon: {
+    id: "monsoon",
+    title: "季风记忆",
+    subtitle: "云核留下旧循环的痕迹，空岛开始带着记忆重启。",
+    shellClassName: "mood-monsoon",
+    stageClassName: "stage-monsoon",
+    weatherEffect: "wind",
+  },
+  stormFront: {
+    id: "stormFront",
+    title: "云潮前线",
+    subtitle: "多次季风叠成发光的云潮，远雷也变成温柔的回声。",
+    shellClassName: "mood-storm-front",
+    stageClassName: "stage-storm-front",
+    weatherEffect: "storm",
+  },
+  climateRewrite: {
+    id: "climateRewrite",
+    title: "气候改写",
+    subtitle: "规则开始沉淀，空岛不再只是重复旧天气。",
+    shellClassName: "mood-climate-rewrite",
+    stageClassName: "stage-climate-rewrite",
+    weatherEffect: "aurora",
+  },
+  skyHeart: {
+    id: "skyHeart",
+    title: "天空心脏",
+    subtitle: "高空的脉冲正在回应，终局天气逐渐成形。",
+    shellClassName: "mood-sky-heart",
+    stageClassName: "stage-sky-heart",
+    weatherEffect: "aurora",
+  },
+};
+
+/**
+ * Returns the current visual mood for the island stage.
+ */
+export function getIslandMood(state: WeatherReactorState): IslandMood {
+  if (state.skyHeartAwakened || state.skyHeartPulseLevel > 0 || state.bestWeatherExp >= 292) {
+    return MOODS.skyHeart;
+  }
+
+  if (state.totalClimateRewrites > 0) {
+    return MOODS.climateRewrite;
+  }
+
+  if (state.totalStormFronts > 0) {
+    return MOODS.stormFront;
+  }
+
+  if (state.totalMonsoonCycles > 0 || state.cloudCores > 0) {
+    return MOODS.monsoon;
+  }
+
+  if (state.rainRanks >= 6 || state.upgrades.windEye > 0) {
+    return MOODS.windEye;
+  }
+
+  if (state.rainRanks >= 3 || state.upgrades.rootWake > 0 || state.upgrades.cloudBloom > 0) {
+    return MOODS.rootedRain;
+  }
+
+  if (state.rainRanks >= 1 || state.resources.droplets > 0) {
+    return MOODS.firstRain;
+  }
+
+  return MOODS.dryStart;
+}
+
+/**
+ * Picks the small resource set that belongs in the top HUD.
+ */
+export function getKeyHudResourceIds(state: WeatherReactorState): VisibleHudResourceId[] {
+  const mood = getIslandMood(state);
+
+  switch (mood.id) {
+    case "dryStart":
+      return ["weather", "rainRanks"];
+    case "firstRain":
+      return ["weather", "rainRanks", "droplets"];
+    case "rootedRain":
+      return ["weather", "rainRanks", "roots"];
+    case "windEye":
+      return ["weather", "rainRanks", "clouds"];
+    case "monsoon":
+      return ["weather", "cloudCores", state.pressure > 0 ? "pressure" : "monsoonCycles"];
+    case "stormFront":
+      return ["weather", "pressure", "stormCells"];
+    case "climateRewrite":
+      return ["weather", "stormCells", "climateThreads", "skyHeart"];
+    case "skyHeart":
+      return ["weather", "climateThreads", "skyHeart"];
+  }
+}
+
+/**
+ * Backward-compatible name for the top HUD resource ids.
+ */
+export function getVisibleHudResources(state: WeatherReactorState): VisibleHudResourceId[] {
+  return getKeyHudResourceIds(state);
+}
+
+/**
+ * Returns every resource that should be visible in the persistent resource ledger.
+ */
+export function getUnlockedResourceIds(state: WeatherReactorState): VisibleHudResourceId[] {
+  const ids: VisibleHudResourceId[] = ["weather", "rainRanks"];
+
+  if (state.rainRanks >= 1 || state.resources.droplets > 0 || state.upgrades.rootWake > 0) {
+    ids.push("droplets");
+  }
+
+  if (state.rainRanks >= 3 || state.resources.roots > 0 || state.upgrades.rootWake > 0 || state.upgrades.cloudBloom > 0) {
+    ids.push("roots");
+  }
+
+  if (state.rainRanks >= 6 || state.resources.clouds > 0 || state.upgrades.cloudBloom > 0 || state.upgrades.windEye > 0) {
+    ids.push("clouds");
+  }
+
+  if (state.totalMonsoonCycles > 0 || state.cloudCores > 0 || state.totalCloudCores > 0) {
+    ids.push("monsoonCycles", "cloudCores");
+  }
+
+  if (state.totalMonsoonCycles >= 2 || state.pressure > 0 || state.totalPressureSpentThisFront > 0 || state.totalStormFronts > 0) {
+    ids.push("pressure");
+  }
+
+  if (state.totalStormFronts > 0 || state.stormCells > 0 || state.totalStormCells > 0) {
+    ids.push("stormCells");
+  }
+
+  if (state.totalClimateRewrites > 0 || state.climateThreads > 0 || state.totalClimateThreads > 0) {
+    ids.push("climateThreads");
+  }
+
+  if (state.skyHeartPulseLevel > 0 || state.skyHeartAwakened || state.bestWeatherExp >= 250) {
+    ids.push("skyHeart");
+  }
+
+  return ids;
+}
+
+/**
+ * Converts the current top HUD resources into display-ready chips.
+ */
+export function getHudResourceViewModels(
+  state: WeatherReactorState,
+  exact = false,
+): HudResourceViewModel[] {
+  return getKeyHudResourceIds(state).map((resourceId) => getResourceViewModel(state, resourceId, exact));
+}
+
+/**
+ * Groups every unlocked resource into a persistent ledger for the workbench.
+ */
+export function getResourceLedgerSections(
+  state: WeatherReactorState,
+  exact = false,
+): ResourceLedgerSection[] {
+  const unlockedIds = new Set(getUnlockedResourceIds(state));
+  const rates = calculateRates(state);
+  const runItems: ResourceLedgerItem[] = [];
+  const resetItems: ResourceLedgerItem[] = [];
+  const frontItems: ResourceLedgerItem[] = [];
+  const stormItems: ResourceLedgerItem[] = [];
+  const climateItems: ResourceLedgerItem[] = [];
+  const endgameItems: ResourceLedgerItem[] = [];
+
+  for (const resourceId of ["weather", "droplets", "roots", "clouds"] as ResourceKey[]) {
+    if (!unlockedIds.has(resourceId)) {
+      continue;
+    }
+
+    runItems.push({
+      ...getResourceViewModel(state, resourceId, exact),
+      rate: `+${formatRate(rates[resourceId], exact)}/秒`,
+      emphasis: resourceId === "weather" ? "primary" : "normal",
+    });
+  }
+
+  resetItems.push({
+    ...getResourceViewModel(state, "rainRanks", exact),
+    detail: "天气活力 ×(1+雨阶)",
+    emphasis: "primary",
+  });
+
+  if (unlockedIds.has("monsoonCycles")) {
+    resetItems.push(getResourceViewModel(state, "monsoonCycles", exact));
+  }
+
+  if (unlockedIds.has("cloudCores")) {
+    resetItems.push({
+      ...getResourceViewModel(state, "cloudCores", exact),
+      detail: "永久资源",
+      emphasis: "primary",
+    });
+  }
+
+  if (unlockedIds.has("pressure")) {
+    frontItems.push(getResourceViewModel(state, "pressure", exact));
+  }
+
+  if (unlockedIds.has("stormCells")) {
+    stormItems.push(getResourceViewModel(state, "stormCells", exact));
+  }
+
+  if (unlockedIds.has("climateThreads")) {
+    climateItems.push(getResourceViewModel(state, "climateThreads", exact));
+  }
+
+  if (unlockedIds.has("skyHeart")) {
+    endgameItems.push(getResourceViewModel(state, "skyHeart", exact));
+  }
+
+  const sections: ResourceLedgerSection[] = [
+    { id: "run", title: "本轮天气", items: runItems },
+    { id: "reset", title: "循环记忆", items: resetItems },
+    { id: "front", title: "云潮气息", items: frontItems },
+    { id: "storm", title: "远雷花芽", items: stormItems },
+    { id: "climate", title: "气候织页", items: climateItems },
+    { id: "endgame", title: "天空心跳", items: endgameItems },
+  ];
+
+  return sections.filter((section) => section.items.length > 0);
+}
+
+function getResourceViewModel(
+  state: WeatherReactorState,
+  resourceId: VisibleHudResourceId,
+  exact: boolean,
+): HudResourceViewModel {
+  if (resourceId in RESOURCE_LABELS) {
+    const key = resourceId as ResourceKey;
+    return {
+      id: key,
+      label: RESOURCE_LABELS[key].name,
+      value: formatNumber(state.resources[key], exact),
+    };
+  }
+
+  switch (resourceId) {
+    case "rainRanks":
+      return { id: resourceId, label: "雨阶", value: formatNumber(state.rainRanks, exact) };
+    case "monsoonCycles":
+      return {
+        id: resourceId,
+        label: "季风",
+        value: formatNumber(state.totalMonsoonCycles, exact),
+        detail: `本前线 ${state.monsoonCyclesInFront}`,
+      };
+    case "cloudCores":
+      return {
+        id: resourceId,
+        label: "云核",
+        value: `${formatNumber(state.cloudCores, exact)} / ${formatNumber(state.totalCloudCores, exact)}`,
+        detail: "可用 / 总计",
+      };
+    case "pressure":
+      return {
+        id: resourceId,
+        label: "气压",
+        value: formatNumber(state.pressure, exact),
+        detail: "当前前线",
+      };
+    case "stormCells":
+      return {
+        id: resourceId,
+        label: "风暴胞",
+        value: `${formatNumber(state.stormCells, exact)} / ${formatNumber(state.totalStormCells, exact)}`,
+        detail: "可用 / 总计",
+      };
+    case "climateThreads":
+      return {
+        id: resourceId,
+        label: "气候织线",
+        value: `${formatNumber(state.climateThreads, exact)} / ${formatNumber(state.totalClimateThreads, exact)}`,
+        detail: "可用 / 总计",
+      };
+    case "skyHeart":
+      return {
+        id: resourceId,
+        label: "天空心脏",
+        value: state.skyHeartAwakened ? "已苏醒" : `${state.skyHeartPulseLevel}/3`,
+        detail: state.skyHeartAwakened ? "终局完成" : "脉冲",
+      };
+    default:
+      return { id: "weather", label: "天气活力", value: formatNumber(state.resources.weather, exact) };
+  }
+}
+
+/**
+ * Returns the compact stat set used by the classic top status bar.
+ */
+export function getVisibleHudStats(state: WeatherReactorState, exact = false) {
+  return getHudResourceViewModels(state, exact).slice(0, 3);
+}
+
+/**
+ * Returns main workbench tabs available at the current stage.
+ */
+export function getUnlockedMainTabs(state: WeatherReactorState): MainTabDefinition[] {
+  const tabs: MainTabDefinition[] = [
+    {
+      id: "runUpgrades",
+      label: "培育",
+      ariaDescription: "当前可培育的天气升级",
+      tier: "current",
+    },
+    {
+      id: "resets",
+      label: "循环",
+      ariaDescription: "雨阶、季风和后续循环动作",
+      tier: "loop",
+    },
+    {
+      id: "resources",
+      label: "记录",
+      ariaDescription: "已经显露的天气资源记录",
+      tier: "archive",
+    },
+  ];
+
+  if (state.totalMonsoonCycles > 0 || state.cloudCores > 0 || state.totalStormFronts > 0) {
+    tabs.push({
+      id: "atlas",
+      label: "图谱",
+      ariaDescription: "跨循环成长图谱",
+      tier: "deep",
+    });
+  }
+
+  if (state.rainRanks > 0 || state.cloudLevel >= 2 || state.totalMonsoonCycles > 0) {
+    tabs.push({
+      id: "formula",
+      label: "批注",
+      ariaDescription: "天气公式和细节批注",
+      tier: "deep",
+    });
+  }
+
+  tabs.push({
+    id: "settings",
+    label: "书签",
+    ariaDescription: "显示和存档设置",
+    tier: "system",
+  });
+  return tabs;
+}
+
+/**
+ * Returns overlay tabs that have meaningful content at the current stage.
+ */
+export function getVisibleOverlayTabs(state: WeatherReactorState): OverlayId[] {
+  const tabs: OverlayId[] = ["resources", "upgrades", "formula", "menu"];
+  return tabs.filter((tab) => tab !== "none" && (tab !== "formula" || state.cloudLevel >= 1 || state.rainRanks > 0));
+}
+
+/**
+ * Returns the next visible goal for the player.
+ */
+export function getPrimaryGoalViewModel(state: WeatherReactorState, exact = false): GoalViewModel {
+  if (state.skyHeartAwakened) {
+    return {
+      title: "天空心脏已苏醒",
+      description: "空岛天气完成当前终局，可以继续刷更高天气活力。",
+      hint: "终局完成后，后续就是继续推高天气活力和观察剩余层级空间。",
+      progress: 1,
+    };
+  }
+
+  if (state.rainRanks === 0 && state.upgrades.dropletSeed === 0) {
+    return {
+      title: "让天气自己流动",
+      description: "点击云层，购买云层注入与活力基流，打开第一段自动增长。",
+      hint: "先让速率动起来；后面凝结雨阶会清空本轮天气，但留下全局乘区。",
+      progress: Math.min(1, state.bestWeather / 100),
+    };
+  }
+
+  if (state.rainRanks < 10 && state.totalMonsoonCycles === 0) {
+    const requirement = getRainRankRequirement(state);
+    const progress = Math.min(1, state.resources.weather / requirement);
+    return {
+      title: state.rainRanks === 0 ? "凝结第一次雨阶" : "冲向 10 雨阶",
+      description: `天气活力达到 ${formatNumber(requirement, exact)} 后凝结雨阶，逐步开启生产者链。`,
+      hint: getEarlyRainRankHint(state, progress),
+      progress,
+    };
+  }
+
+  const milestone = getCurrentMainlineMilestone(state);
+  const targetExp = getCurrentMilestoneTargetExp(state);
+  const currentExp = log10Safe(state.resources.weather);
+  const requiredRainRanks = milestone.requiredRainRanks ?? MONSOON_RAIN_RANK_REQUIREMENT;
+
+  if (state.rainRanks < requiredRainRanks) {
+    return {
+      title: `补足 ${requiredRainRanks} 雨阶`,
+      description: `${requiredRainRanks} 雨阶后推进 ${milestone.title}。`,
+      hint: "每次凝结都会让旧流程更快；这段小循环是在为下一次大循环蓄势。",
+      progress: Math.min(1, state.rainRanks / requiredRainRanks),
+    };
+  }
+
+  if (currentExp < targetExp) {
+    return {
+      title: `冲向${milestone.title}`,
+      description: `当前目标为 1e${targetExp.toFixed(exact ? 2 : 0)} 天气活力。`,
+      hint: "如果本轮速率明显放缓，先照看推荐培育；门槛达成后再执行循环动作。",
+      progress: Math.min(1, Math.max(0, currentExp) / Math.max(1, targetExp)),
+    };
+  }
+
+  return {
+    title: `执行${milestone.title}`,
+    description: getMilestoneActionText(milestone.kind),
+    hint: "执行会清空部分本轮进度，但保留跨循环收获，让旧流程被压缩。",
+    progress: 1,
+  };
+}
+
+/**
+ * Chooses the single strongest action to expose in the bottom action bar.
+ */
+export function getPrimaryAction(state: WeatherReactorState): PrimaryActionViewModel {
+  if (canAwakenSkyHeart(state)) {
+    return {
+      id: "awakenSkyHeart",
+      label: "唤醒",
+      title: "唤醒天空心脏",
+      description: "终局条件已达成，点燃天空心脏。",
+      enabled: true,
+      progress: 1,
+    };
+  }
+
+  if (canBuySkyHeartPulse(state)) {
+    return {
+      id: "buySkyHeartPulse",
+      label: "点亮脉冲",
+      title: "天空心脏脉冲",
+      description: "购买下一次终局脉冲，把天气活力推向 1e308。",
+      enabled: true,
+      progress: getSkyHeartProgress(state),
+      rewardText: `${state.skyHeartPulseLevel}/3`,
+    };
+  }
+
+  if (canRunClimateRewrite(state)) {
+    return {
+      id: "runClimateRewrite",
+      label: "改写气候",
+      title: "气候改写",
+      description: "重置当前天气与前线压力，获得气候织线。",
+      enabled: true,
+      progress: 1,
+      rewardText: `+${getClimateThreadGain(state)} 织线`,
+    };
+  }
+
+  if (canRunStormFront(state)) {
+    return {
+      id: "runStormFront",
+      label: "收束前线",
+      title: "风暴前线",
+      description: "收束当前前线，获得风暴胞并推进更高层天气。",
+      enabled: true,
+      progress: 1,
+      rewardText: `+${getStormCellGain(state)} 风暴胞`,
+    };
+  }
+
+  if (canRunFrontEchoReset(state)) {
+    return {
+      id: "runFrontEcho",
+      label: "激起回响",
+      title: "前线回响",
+      description: `前线尚未收束时的轻量回响，最多 ${getFrontEchoMaxCount(state)} 层。`,
+      enabled: true,
+      progress: 1,
+      rewardText: `+${getFrontEchoGain(state)} 回响`,
+    };
+  }
+
+  if (canRunMonsoon(state)) {
+    return {
+      id: "runMonsoon",
+      label: "执行季风",
+      title: "季风循环",
+      description: "重置本轮天气，凝结云核并获得当前前线的气压。",
+      enabled: true,
+      progress: 1,
+      rewardText: `+${getCloudCoreGain(state)} 云核`,
+    };
+  }
+
+  if (canClaimRainRank(state)) {
+    return {
+      id: "claimRainRank",
+      label: "凝结雨阶",
+      title: "凝雨循环",
+      description: "当前升级会重置，获得 1 雨阶并提高天气活力收入。",
+      enabled: true,
+      progress: 1,
+      rewardText: `雨阶 ${state.rainRanks} → ${state.rainRanks + 1}`,
+    };
+  }
+
+  const milestone = getCurrentMainlineMilestone(state);
+  const targetExp = getCurrentMilestoneTargetExp(state);
+  const currentExp = log10Safe(state.resources.weather);
+  const rainRequirement = getRainRankRequirement(state);
+  const monsoonTarget = getMonsoonWeatherTarget(state);
+  const frontEchoRequirementExp = getFrontEchoRequirementExp(state);
+  const targetProgress = Math.min(1, Math.max(0, currentExp) / Math.max(1, targetExp));
+  const rainProgress = Math.min(1, state.resources.weather / Math.max(1, rainRequirement));
+
+  return {
+    id: "touchCloud",
+    label: "点击云层",
+    title: "积蓄天气活力",
+    description: state.totalMonsoonCycles === 0
+      ? `下一雨阶需要 ${formatNumber(rainRequirement)} 天气活力。`
+      : `主线 ${milestone.title} 目标 1e${targetExp.toFixed(0)}，季风目标 ${formatNumber(monsoonTarget)}。`,
+    enabled: true,
+    progress: state.totalMonsoonCycles === 0 ? rainProgress : targetProgress,
+    rewardText: canRunFrontEchoReset(state) ? `回响门槛 1e${frontEchoRequirementExp.toFixed(0)}` : undefined,
+  };
+}
+
+/**
+ * Picks visible run upgrades for the bottom action bar.
+ */
+export function getActionBarUpgradeIds(state: WeatherReactorState): UpgradeId[] {
+  const visibleUpgradeIds = UPGRADE_GROUPS
+    .filter((group) => group.isUnlocked(state))
+    .flatMap((group) => group.upgradeIds)
+    .filter((upgradeId) => isUpgradeVisible(state, upgradeId))
+    .filter((upgradeId) => !isRunUpgradeMaxed(state, upgradeId));
+
+  return visibleUpgradeIds.slice(0, 6);
+}
+
+/**
+ * Returns the run upgrades emphasized by the current stage.
+ */
+export function getRecommendedUpgradeIds(state: WeatherReactorState): UpgradeId[] {
+  const milestone = getCurrentMainlineMilestone(state);
+  const ids: UpgradeId[] = state.rainRanks < 1
+    ? ["cloudTouch", "dropletSeed", "weatherAmplifier"]
+    : state.rainRanks < 3
+      ? ["rootWake", "weatherAmplifier", "dropletSeed"]
+      : state.rainRanks < 6
+        ? ["cloudBloom", "rootWake", "weatherAmplifier"]
+        : state.rainRanks < (milestone.requiredRainRanks ?? MONSOON_RAIN_RANK_REQUIREMENT)
+          ? ["windEye", "heavyRain", "weatherAmplifier"]
+          : milestone.kind === "monsoon"
+            ? ["monsoonPull", "heavyRain", "weatherAmplifier"]
+            : ["monsoonPull", "pressureGaugeRun", "frontRain"];
+
+  return ids.filter((upgradeId) => isUpgradeVisible(state, upgradeId) && !isRunUpgradeMaxed(state, upgradeId));
+}
+
+function getMilestoneActionText(kind: ReturnType<typeof getCurrentMainlineMilestone>["kind"]) {
+  switch (kind) {
+    case "monsoon":
+      return "重置本轮天气，凝结云核，并把前线推进到下一段。";
+    case "stormFront":
+      return "收束当前前线，获得风暴胞。";
+    case "climateRewrite":
+      return "重写当前气候层，获得气候织线。";
+    case "skyPulse":
+      return "点亮天空心脏脉冲。";
+    case "ending":
+      return "点燃天空心脏。";
+  }
+}
+
+function getEarlyRainRankHint(state: WeatherReactorState, progress: number) {
+  if (canClaimRainRank(state)) {
+    return "可以凝结了：本轮天气会回到起点，但雨阶乘区会留下，下一轮更快。";
+  }
+
+  if (state.rainRanks === 0) {
+    return "第一次凝结会清空本轮天气，但留下雨阶乘区：天气活力 ×(1+雨阶)。";
+  }
+
+  if (state.rainRanks < 3) {
+    return "前几次会慢一点；凝结后乘区叠上去，回到门槛会越来越快。";
+  }
+
+  if (state.rainRanks < 7) {
+    return "现在是加速段：买推荐培育，等待下一次凝结，旧流程会被连续压短。";
+  }
+
+  if (progress < 0.72) {
+    return "需求升高时会缓一小会，这是冲向第一次季风前的蓄势段。";
+  }
+
+  return "接近下一次凝结；攒到 10 雨阶后，第一次季风会打开更大的循环。";
+}
