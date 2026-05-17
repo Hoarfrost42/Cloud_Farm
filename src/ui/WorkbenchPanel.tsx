@@ -50,6 +50,7 @@ import { FormulaPanel } from "./FormulaPanel";
 import { ResourcePanel } from "./ResourcePanel";
 import { ResourceLedger } from "./ResourceLedger";
 import { UpgradeRow } from "./UpgradeRow";
+import { getUiRegionProps } from "./uiRegions";
 
 interface WorkbenchPanelProps {
   state: WeatherReactorState;
@@ -90,7 +91,7 @@ export function WorkbenchPanel({
   const resourceLedgerSections = getResourceLedgerSections(state, exact);
 
   return (
-    <section className="workbench-panel" aria-label="复苏手账主页面">
+    <section {...getUiRegionProps("recoveryNotebook", "workbench-panel")}>
       {renderWorkbenchHeader(state, activeTab)}
       <div className="workbench-body">
         <div className="workbench-content">

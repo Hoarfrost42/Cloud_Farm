@@ -1970,6 +1970,28 @@ button:disabled {
   z-index: 1;
 }
 
+.ui-region {
+  min-width: 0;
+}
+
+[data-ui-region="shell"] {
+  isolation: isolate;
+}
+
+[data-ui-region="pulse-bar"],
+[data-ui-region="system-tabs"],
+[data-ui-region="main-deck"],
+[data-ui-region="recovery-route"] {
+  position: relative;
+  z-index: 1;
+}
+
+[data-ui-region="revival-stage"],
+[data-ui-region="recovery-notebook"],
+[data-ui-region="resource-margin"] {
+  isolation: isolate;
+}
+
 .top-status-bar {
   min-width: 0;
   display: grid;

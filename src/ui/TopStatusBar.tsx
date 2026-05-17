@@ -1,5 +1,6 @@
 import type { GoalViewModel, HudResourceViewModel, IslandMood } from "../game/economy";
 import { formatElapsedTime } from "../game/economy";
+import { getUiRegionProps } from "./uiRegions";
 
 interface TopStatusBarProps {
   mood: IslandMood;
@@ -22,7 +23,7 @@ export function TopStatusBar({
   onTogglePause,
 }: TopStatusBarProps) {
   return (
-    <header className="top-status-bar">
+    <header {...getUiRegionProps("pulseBar", "top-status-bar")}>
       <div className="top-status-brand">
         <span className="brand-mark" aria-hidden="true">晴</span>
         <div>

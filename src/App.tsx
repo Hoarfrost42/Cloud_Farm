@@ -65,6 +65,7 @@ import { MilestoneFooter } from "./ui/MilestoneFooter";
 import { ReactorStagePanel } from "./ui/ReactorStagePanel";
 import { TopStatusBar } from "./ui/TopStatusBar";
 import { WorkbenchPanel } from "./ui/WorkbenchPanel";
+import { getUiRegionProps } from "./ui/uiRegions";
 
 type ReactorState = WeatherReactorState & {
   notice: NoticeState | null;
@@ -498,7 +499,7 @@ export default function App() {
   }
 
   return (
-    <main className={`incremental-shell incremental-shell--${mood.id} ${mood.shellClassName}`}>
+    <main {...getUiRegionProps("shell", `incremental-shell incremental-shell--${mood.id} ${mood.shellClassName}`)}>
       <TopStatusBar
         mood={mood}
         stats={hudStats}
@@ -510,7 +511,7 @@ export default function App() {
 
       <MainTabs tabs={unlockedMainTabs} activeTab={activeTab} onChangeTab={setActiveTab} />
 
-      <section className="incremental-main">
+      <section {...getUiRegionProps("mainDeck", "incremental-main")}>
         <ReactorStagePanel
           state={state}
           mood={mood}

@@ -1,4 +1,5 @@
 import type { MainTabDefinition, MainTabId } from "./uiTypes";
+import { getUiRegionProps } from "./uiRegions";
 
 interface MainTabsProps {
   tabs: MainTabDefinition[];
@@ -11,7 +12,7 @@ interface MainTabsProps {
  */
 export function MainTabs({ tabs, activeTab, onChangeTab }: MainTabsProps) {
   return (
-    <nav className="main-tabs" aria-label="主要系统">
+    <nav {...getUiRegionProps("systemTabs", "main-tabs")}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -26,4 +27,3 @@ export function MainTabs({ tabs, activeTab, onChangeTab }: MainTabsProps) {
     </nav>
   );
 }
-

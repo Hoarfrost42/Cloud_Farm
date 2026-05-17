@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { GoalViewModel, IslandMood, PrimaryActionId, PrimaryActionViewModel, WeatherReactorState } from "../game/economy";
 import { getCloudTouchAmount } from "../game/economy";
+import { getUiRegionProps } from "./uiRegions";
 
 interface ReactorStagePanelProps {
   state: WeatherReactorState;
@@ -82,7 +83,7 @@ export function ReactorStagePanel({
   }
 
   return (
-    <aside className={`reactor-stage-panel ${mood.stageClassName}`} aria-label="空岛复苏现场">
+    <aside {...getUiRegionProps("revivalStage", `reactor-stage-panel ${mood.stageClassName}`)}>
       <div className={`reactor-weather-effect reactor-weather-effect--${mood.weatherEffect}`} aria-hidden="true" />
 
       <header className="reactor-stage-panel__header">

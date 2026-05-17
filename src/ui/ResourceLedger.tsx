@@ -1,4 +1,5 @@
 import type { MainTabId, ResourceLedgerSection } from "../game/economy";
+import { getUiRegionProps } from "./uiRegions";
 
 interface ResourceLedgerProps {
   sections: ResourceLedgerSection[];
@@ -10,7 +11,7 @@ interface ResourceLedgerProps {
  */
 export function ResourceLedger({ sections, onOpenTab }: ResourceLedgerProps) {
   return (
-    <aside className="resource-ledger" aria-label="天气手账边注">
+    <aside {...getUiRegionProps("resourceMargin", "resource-ledger")}>
       <header className="resource-ledger__header">
         <div>
           <span>手账边注</span>
