@@ -26,6 +26,7 @@ import {
   getPermanentUpgrade,
   getPressureUpgrade,
   getRainRankRequirement,
+  getResourceLedgerSections,
   getRecommendedUpgradeIds,
   getStormCellGain,
   getStormUpgrade,
@@ -47,6 +48,7 @@ import {
 } from "../game/economy";
 import { FormulaPanel } from "./FormulaPanel";
 import { ResourcePanel } from "./ResourcePanel";
+import { ResourceLedger } from "./ResourceLedger";
 import { UpgradeRow } from "./UpgradeRow";
 
 interface WorkbenchPanelProps {
@@ -61,6 +63,7 @@ interface WorkbenchPanelProps {
   onBuyStormUpgrade: (upgradeId: StormUpgradeId) => void;
   onBuyClimateLaw: (lawId: ClimateLawId) => void;
   onRunPrimaryAction: (actionId: PrimaryActionId) => void;
+  onChangeTab: (tabId: MainTabId) => void;
   onToggleExact: () => void;
   onResetAll: () => void;
 }
@@ -80,40 +83,46 @@ export function WorkbenchPanel({
   onBuyStormUpgrade,
   onBuyClimateLaw,
   onRunPrimaryAction,
+  onChangeTab,
   onToggleExact,
   onResetAll,
 }: WorkbenchPanelProps) {
+  const resourceLedgerSections = getResourceLedgerSections(state, exact);
+
   return (
     <section className="workbench-panel" aria-label="当前系统工作台">
       {renderWorkbenchHeader(state, activeTab)}
-      <div className="workbench-scroll">
-        {activeTab === "reactor" ? renderReactorTab(state) : null}
-        {activeTab === "runUpgrades" ? (
-          <RunUpgradeTab
-            state={state}
-            selectedUpgradeGroupId={selectedUpgradeGroupId}
-            exact={exact}
-            onSelectUpgradeGroup={onSelectUpgradeGroup}
-            onBuyRunUpgrade={onBuyRunUpgrade}
-          />
-        ) : null}
-        {activeTab === "resets" ? (
-          <ResetTab state={state} exact={exact} onRunPrimaryAction={onRunPrimaryAction} />
-        ) : null}
-        {activeTab === "resources" ? <ResourcePanel state={state} exact={exact} /> : null}
-        {activeTab === "atlas" ? (
-          <AtlasTab
-            state={state}
-            onBuyPermanentUpgrade={onBuyPermanentUpgrade}
-            onBuyPressureUpgrade={onBuyPressureUpgrade}
-            onBuyStormUpgrade={onBuyStormUpgrade}
-            onBuyClimateLaw={onBuyClimateLaw}
-          />
-        ) : null}
-        {activeTab === "formula" ? <FormulaPanel state={state} exact={exact} /> : null}
-        {activeTab === "settings" ? (
-          <SettingsTab exact={exact} onToggleExact={onToggleExact} onResetAll={onResetAll} />
-        ) : null}
+      <div className="workbench-body">
+        <div className="workbench-content">
+          {activeTab === "reactor" ? renderReactorTab(state) : null}
+          {activeTab === "runUpgrades" ? (
+            <RunUpgradeTab
+              state={state}
+              selectedUpgradeGroupId={selectedUpgradeGroupId}
+              exact={exact}
+              onSelectUpgradeGroup={onSelectUpgradeGroup}
+              onBuyRunUpgrade={onBuyRunUpgrade}
+            />
+          ) : null}
+          {activeTab === "resets" ? (
+            <ResetTab state={state} exact={exact} onRunPrimaryAction={onRunPrimaryAction} />
+          ) : null}
+          {activeTab === "resources" ? <ResourcePanel state={state} exact={exact} /> : null}
+          {activeTab === "atlas" ? (
+            <AtlasTab
+              state={state}
+              onBuyPermanentUpgrade={onBuyPermanentUpgrade}
+              onBuyPressureUpgrade={onBuyPressureUpgrade}
+              onBuyStormUpgrade={onBuyStormUpgrade}
+              onBuyClimateLaw={onBuyClimateLaw}
+            />
+          ) : null}
+          {activeTab === "formula" ? <FormulaPanel state={state} exact={exact} /> : null}
+          {activeTab === "settings" ? (
+            <SettingsTab exact={exact} onToggleExact={onToggleExact} onResetAll={onResetAll} />
+          ) : null}
+        </div>
+        <ResourceLedger sections={resourceLedgerSections} onOpenTab={onChangeTab} />
       </div>
     </section>
   );

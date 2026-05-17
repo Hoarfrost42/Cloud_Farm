@@ -24,7 +24,9 @@ import {
 } from "./resets.ts";
 import {
   formatNumber,
+  formatRate,
 } from "./format.ts";
+import { calculateRates } from "./formulas.ts";
 import { log10Safe } from "./logNumbers.ts";
 import {
   UPGRADE_GROUPS,
@@ -115,6 +117,23 @@ export interface HudResourceViewModel {
   label: string;
   value: string;
   detail?: string;
+}
+
+export type ResourceSectionId = "run" | "reset" | "meta" | "front" | "storm" | "climate" | "endgame";
+
+export interface ResourceLedgerItem {
+  id: VisibleHudResourceId;
+  label: string;
+  value: string;
+  rate?: string;
+  detail?: string;
+  emphasis?: "primary" | "normal" | "muted";
+}
+
+export interface ResourceLedgerSection {
+  id: ResourceSectionId;
+  title: string;
+  items: ResourceLedgerItem[];
 }
 
 const MOODS: Record<IslandMoodId, IslandMood> = {
@@ -222,7 +241,7 @@ export function getIslandMood(state: WeatherReactorState): IslandMood {
 /**
  * Picks the small resource set that belongs in the top HUD.
  */
-export function getVisibleHudResources(state: WeatherReactorState): VisibleHudResourceId[] {
+export function getKeyHudResourceIds(state: WeatherReactorState): VisibleHudResourceId[] {
   const mood = getIslandMood(state);
 
   switch (mood.id) {
@@ -231,13 +250,13 @@ export function getVisibleHudResources(state: WeatherReactorState): VisibleHudRe
     case "firstRain":
       return ["weather", "rainRanks", "droplets"];
     case "rootedRain":
-      return ["weather", "rainRanks", "droplets", "roots"];
+      return ["weather", "rainRanks", "roots"];
     case "windEye":
-      return ["weather", "rainRanks", "droplets", "roots", "clouds"];
+      return ["weather", "rainRanks", "clouds"];
     case "monsoon":
-      return ["weather", "rainRanks", "monsoonCycles", "cloudCores", "pressure"];
+      return ["weather", "cloudCores", state.pressure > 0 ? "pressure" : "monsoonCycles"];
     case "stormFront":
-      return ["weather", "monsoonCycles", "pressure", "stormCells"];
+      return ["weather", "pressure", "stormCells"];
     case "climateRewrite":
       return ["weather", "stormCells", "climateThreads", "skyHeart"];
     case "skyHeart":
@@ -246,48 +265,206 @@ export function getVisibleHudResources(state: WeatherReactorState): VisibleHudRe
 }
 
 /**
- * Converts the current HUD resources into display-ready chips.
+ * Backward-compatible name for the top HUD resource ids.
+ */
+export function getVisibleHudResources(state: WeatherReactorState): VisibleHudResourceId[] {
+  return getKeyHudResourceIds(state);
+}
+
+/**
+ * Returns every resource that should be visible in the persistent resource ledger.
+ */
+export function getUnlockedResourceIds(state: WeatherReactorState): VisibleHudResourceId[] {
+  const ids: VisibleHudResourceId[] = ["weather", "rainRanks"];
+
+  if (state.rainRanks >= 1 || state.resources.droplets > 0 || state.upgrades.rootWake > 0) {
+    ids.push("droplets");
+  }
+
+  if (state.rainRanks >= 3 || state.resources.roots > 0 || state.upgrades.rootWake > 0 || state.upgrades.cloudBloom > 0) {
+    ids.push("roots");
+  }
+
+  if (state.rainRanks >= 6 || state.resources.clouds > 0 || state.upgrades.cloudBloom > 0 || state.upgrades.windEye > 0) {
+    ids.push("clouds");
+  }
+
+  if (state.totalMonsoonCycles > 0 || state.cloudCores > 0 || state.totalCloudCores > 0) {
+    ids.push("monsoonCycles", "cloudCores");
+  }
+
+  if (state.totalMonsoonCycles >= 2 || state.pressure > 0 || state.totalPressureSpentThisFront > 0 || state.totalStormFronts > 0) {
+    ids.push("pressure");
+  }
+
+  if (state.totalStormFronts > 0 || state.stormCells > 0 || state.totalStormCells > 0) {
+    ids.push("stormCells");
+  }
+
+  if (state.totalClimateRewrites > 0 || state.climateThreads > 0 || state.totalClimateThreads > 0) {
+    ids.push("climateThreads");
+  }
+
+  if (state.skyHeartPulseLevel > 0 || state.skyHeartAwakened || state.bestWeatherExp >= 250) {
+    ids.push("skyHeart");
+  }
+
+  return ids;
+}
+
+/**
+ * Converts the current top HUD resources into display-ready chips.
  */
 export function getHudResourceViewModels(
   state: WeatherReactorState,
   exact = false,
 ): HudResourceViewModel[] {
-  return getVisibleHudResources(state).map((resourceId) => {
-    if (resourceId in RESOURCE_LABELS) {
-      const key = resourceId as ResourceKey;
-      return {
-        id: key,
-        label: RESOURCE_LABELS[key].name,
-        value: formatNumber(state.resources[key], exact),
-      };
+  return getKeyHudResourceIds(state).map((resourceId) => getResourceViewModel(state, resourceId, exact));
+}
+
+/**
+ * Groups every unlocked resource into a persistent ledger for the workbench.
+ */
+export function getResourceLedgerSections(
+  state: WeatherReactorState,
+  exact = false,
+): ResourceLedgerSection[] {
+  const unlockedIds = new Set(getUnlockedResourceIds(state));
+  const rates = calculateRates(state);
+  const runItems: ResourceLedgerItem[] = [];
+  const resetItems: ResourceLedgerItem[] = [];
+  const frontItems: ResourceLedgerItem[] = [];
+  const stormItems: ResourceLedgerItem[] = [];
+  const climateItems: ResourceLedgerItem[] = [];
+  const endgameItems: ResourceLedgerItem[] = [];
+
+  for (const resourceId of ["weather", "droplets", "roots", "clouds"] as ResourceKey[]) {
+    if (!unlockedIds.has(resourceId)) {
+      continue;
     }
 
-    switch (resourceId) {
-      case "rainRanks":
-        return { id: resourceId, label: "雨阶", value: formatNumber(state.rainRanks, exact) };
-      case "monsoonCycles":
-        return { id: resourceId, label: "季风", value: formatNumber(state.totalMonsoonCycles, exact), detail: `前线 ${state.monsoonCyclesInFront}` };
-      case "cloudCores":
-        return { id: resourceId, label: "云核", value: formatNumber(state.cloudCores, exact), detail: `总 ${formatNumber(state.totalCloudCores, exact)}` };
-      case "pressure":
-        return { id: resourceId, label: "气压", value: formatNumber(state.pressure, exact) };
-      case "stormCells":
-        return { id: resourceId, label: "风暴胞", value: formatNumber(state.stormCells, exact), detail: `总 ${formatNumber(state.totalStormCells, exact)}` };
-      case "climateThreads":
-        return { id: resourceId, label: "气候织线", value: formatNumber(state.climateThreads, exact), detail: `总 ${formatNumber(state.totalClimateThreads, exact)}` };
-      case "skyHeart":
-        return { id: resourceId, label: "天空心脏", value: `${state.skyHeartPulseLevel}/3`, detail: state.skyHeartAwakened ? "已苏醒" : "脉冲" };
-      default:
-        return { id: "weather", label: "天气活力", value: formatNumber(state.resources.weather, exact) };
-    }
+    runItems.push({
+      ...getResourceViewModel(state, resourceId, exact),
+      rate: `+${formatRate(rates[resourceId], exact)}/秒`,
+      emphasis: resourceId === "weather" ? "primary" : "normal",
+    });
+  }
+
+  resetItems.push({
+    ...getResourceViewModel(state, "rainRanks", exact),
+    detail: "小 reset 乘区",
+    emphasis: "primary",
   });
+
+  if (unlockedIds.has("monsoonCycles")) {
+    resetItems.push(getResourceViewModel(state, "monsoonCycles", exact));
+  }
+
+  if (unlockedIds.has("cloudCores")) {
+    resetItems.push({
+      ...getResourceViewModel(state, "cloudCores", exact),
+      detail: "永久资源",
+      emphasis: "primary",
+    });
+  }
+
+  if (unlockedIds.has("pressure")) {
+    frontItems.push(getResourceViewModel(state, "pressure", exact));
+  }
+
+  if (unlockedIds.has("stormCells")) {
+    stormItems.push(getResourceViewModel(state, "stormCells", exact));
+  }
+
+  if (unlockedIds.has("climateThreads")) {
+    climateItems.push(getResourceViewModel(state, "climateThreads", exact));
+  }
+
+  if (unlockedIds.has("skyHeart")) {
+    endgameItems.push(getResourceViewModel(state, "skyHeart", exact));
+  }
+
+  const sections: ResourceLedgerSection[] = [
+    { id: "run", title: "本轮", items: runItems },
+    { id: "reset", title: "重置层", items: resetItems },
+    { id: "front", title: "前线", items: frontItems },
+    { id: "storm", title: "风暴", items: stormItems },
+    { id: "climate", title: "气候", items: climateItems },
+    { id: "endgame", title: "终局", items: endgameItems },
+  ];
+
+  return sections.filter((section) => section.items.length > 0);
+}
+
+function getResourceViewModel(
+  state: WeatherReactorState,
+  resourceId: VisibleHudResourceId,
+  exact: boolean,
+): HudResourceViewModel {
+  if (resourceId in RESOURCE_LABELS) {
+    const key = resourceId as ResourceKey;
+    return {
+      id: key,
+      label: RESOURCE_LABELS[key].name,
+      value: formatNumber(state.resources[key], exact),
+    };
+  }
+
+  switch (resourceId) {
+    case "rainRanks":
+      return { id: resourceId, label: "雨阶", value: formatNumber(state.rainRanks, exact) };
+    case "monsoonCycles":
+      return {
+        id: resourceId,
+        label: "季风",
+        value: formatNumber(state.totalMonsoonCycles, exact),
+        detail: `本前线 ${state.monsoonCyclesInFront}`,
+      };
+    case "cloudCores":
+      return {
+        id: resourceId,
+        label: "云核",
+        value: `${formatNumber(state.cloudCores, exact)} / ${formatNumber(state.totalCloudCores, exact)}`,
+        detail: "可用 / 总计",
+      };
+    case "pressure":
+      return {
+        id: resourceId,
+        label: "气压",
+        value: formatNumber(state.pressure, exact),
+        detail: "当前前线",
+      };
+    case "stormCells":
+      return {
+        id: resourceId,
+        label: "风暴胞",
+        value: `${formatNumber(state.stormCells, exact)} / ${formatNumber(state.totalStormCells, exact)}`,
+        detail: "可用 / 总计",
+      };
+    case "climateThreads":
+      return {
+        id: resourceId,
+        label: "气候织线",
+        value: `${formatNumber(state.climateThreads, exact)} / ${formatNumber(state.totalClimateThreads, exact)}`,
+        detail: "可用 / 总计",
+      };
+    case "skyHeart":
+      return {
+        id: resourceId,
+        label: "天空心脏",
+        value: state.skyHeartAwakened ? "已苏醒" : `${state.skyHeartPulseLevel}/3`,
+        detail: state.skyHeartAwakened ? "终局完成" : "脉冲",
+      };
+    default:
+      return { id: "weather", label: "天气活力", value: formatNumber(state.resources.weather, exact) };
+  }
 }
 
 /**
  * Returns the compact stat set used by the classic top status bar.
  */
 export function getVisibleHudStats(state: WeatherReactorState, exact = false) {
-  return getHudResourceViewModels(state, exact).slice(0, 4);
+  return getHudResourceViewModels(state, exact).slice(0, 3);
 }
 
 /**
@@ -295,7 +472,6 @@ export function getVisibleHudStats(state: WeatherReactorState, exact = false) {
  */
 export function getUnlockedMainTabs(state: WeatherReactorState): MainTabDefinition[] {
   const tabs: MainTabDefinition[] = [
-    { id: "reactor", label: "概览" },
     { id: "runUpgrades", label: "本轮升级" },
     { id: "resets", label: "重置" },
     { id: "resources", label: "资源" },
@@ -305,7 +481,10 @@ export function getUnlockedMainTabs(state: WeatherReactorState): MainTabDefiniti
     tabs.push({ id: "atlas", label: "图谱" });
   }
 
-  tabs.push({ id: "formula", label: "公式" });
+  if (state.rainRanks > 0 || state.cloudLevel >= 2 || state.totalMonsoonCycles > 0) {
+    tabs.push({ id: "formula", label: "公式" });
+  }
+
   tabs.push({ id: "settings", label: "设置" });
   return tabs;
 }

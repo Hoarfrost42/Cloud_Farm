@@ -33,7 +33,8 @@ export function TopStatusBar({
 
       <div className="top-status-stats" aria-label="当前关键资源">
         {stats.map((stat) => (
-          <div key={stat.id} className="top-stat">
+          <div key={stat.id} className={`top-stat top-stat--${stat.id}`}>
+            <i className="top-stat__icon" aria-hidden="true" />
             <span>{stat.label}</span>
             <strong>{stat.value}</strong>
             {stat.detail ? <small>{stat.detail}</small> : null}
@@ -53,4 +54,3 @@ export function TopStatusBar({
     </header>
   );
 }
-

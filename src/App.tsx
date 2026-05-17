@@ -537,6 +537,7 @@ export default function App() {
           onBuyStormUpgrade={buyStormUpgrade}
           onBuyClimateLaw={buyClimateLaw}
           onRunPrimaryAction={runPrimaryAction}
+          onChangeTab={setActiveTab}
           onToggleExact={() => setShowExactDecimals((enabled) => !enabled)}
           onResetAll={resetAll}
         />
