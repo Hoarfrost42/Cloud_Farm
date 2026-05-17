@@ -2785,12 +2785,22 @@ button:disabled {
   font-size: 1rem;
 }
 
-.stage-goal-card p {
+.stage-goal-card p,
+.stage-goal-card em {
   margin: 0;
   color: var(--muted);
   font-size: 0.78rem;
+  font-style: normal;
   font-weight: 800;
   line-height: 1.35;
+}
+
+.stage-goal-card em {
+  padding: 6px 8px;
+  border: 1px dashed rgba(151, 117, 67, 0.2);
+  border-radius: 12px;
+  color: rgba(41, 71, 95, 0.7);
+  background: rgba(255, 250, 239, 0.48);
 }
 
 .stage-goal-card__meter,
@@ -3535,6 +3545,47 @@ button:disabled {
   background:
     radial-gradient(ellipse at 100% 0%, rgba(255, 217, 120, 0.12), transparent 42%),
     linear-gradient(90deg, rgba(255, 250, 239, 0.68), rgba(255, 255, 255, 0.42));
+}
+
+.loop-guidance-note {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px dashed rgba(151, 117, 67, 0.24);
+  border-left: 4px solid var(--mood-accent);
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(255, 217, 120, 0.14), transparent 42%),
+    linear-gradient(90deg, rgba(255, 250, 239, 0.72), rgba(239, 250, 255, 0.46));
+}
+
+.loop-guidance-note span,
+.loop-guidance-note small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loop-guidance-note strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ledger-ink);
+  font-size: 0.86rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loop-guidance-note p {
+  margin: 0;
+  color: rgba(41, 71, 95, 0.68);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.38;
 }
 
 .run-upgrade-workbench {

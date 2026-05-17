@@ -198,7 +198,7 @@ export default function App() {
       const nextState = performRainRankReset(currentState);
       return {
         ...nextState,
-        notice: createNotice("success", `雨阶凝结到 ${nextState.rainRanks}。`),
+        notice: createNotice("success", `雨阶凝结到 ${nextState.rainRanks}，天气活力乘区 ×${nextState.rainRanks + 1}；旧流程会更快。`),
       };
     });
   }

@@ -355,6 +355,7 @@ function ResetTab({ state, exact, onRunPrimaryAction }: ResetTabProps) {
 
   return (
     <div className="upgrade-row-stack">
+      <ResetGuidance state={state} exact={exact} />
       {resetRows.filter((row) => row.visible).map((row) => (
         <UpgradeRow
           key={row.id}
@@ -369,6 +370,45 @@ function ResetTab({ state, exact, onRunPrimaryAction }: ResetTabProps) {
         />
       ))}
     </div>
+  );
+}
+
+function ResetGuidance({ state, exact }: { state: WeatherReactorState; exact: boolean }) {
+  const rainRankRequirement = getRainRankRequirement(state);
+  const milestone = getCurrentMainlineMilestone(state);
+  const requiredRainRanks = milestone.requiredRainRanks ?? 10;
+
+  if (state.totalMonsoonCycles === 0) {
+    return (
+      <section className="loop-guidance-note">
+        <span>循环提示</span>
+        <strong>{canClaimRainRank(state) ? "现在适合凝结雨阶" : "雨阶是第一次季风前的小循环"}</strong>
+        <p>
+          凝结会清空本轮天气和本轮升级，但留下雨阶乘区。先慢一点，再快一点，需求升高时缓一下，攒到 {requiredRainRanks} 雨阶后推进第一次季风。
+        </p>
+        <small>下一雨阶需要 {formatNumber(rainRankRequirement, exact)} 天气活力。</small>
+      </section>
+    );
+  }
+
+  if (state.totalStormFronts === 0) {
+    return (
+      <section className="loop-guidance-note">
+        <span>循环提示</span>
+        <strong>季风会压缩旧流程</strong>
+        <p>季风循环会清空本轮天气，但留下云核和气压。回到同一位置的时间会变短，这就是这一层的主要收益。</p>
+        <small>当前主线：{milestone.title}</small>
+      </section>
+    );
+  }
+
+  return (
+    <section className="loop-guidance-note">
+      <span>循环提示</span>
+      <strong>高层循环保留跨层资源</strong>
+      <p>风暴、气候和天空心脏会清空当前层的一部分积累，但保留更高层资源，用来放大后续天气活力。</p>
+      <small>当前主线：{milestone.title}</small>
+    </section>
   );
 }
 

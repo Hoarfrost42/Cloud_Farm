@@ -101,6 +101,7 @@ export interface IslandMood {
 export interface GoalViewModel {
   title: string;
   description: string;
+  hint?: string;
   progress: number;
 }
 
@@ -537,6 +538,7 @@ export function getPrimaryGoalViewModel(state: WeatherReactorState, exact = fals
     return {
       title: "天空心脏已苏醒",
       description: "空岛天气完成当前终局，可以继续刷更高天气活力。",
+      hint: "终局完成后，后续就是继续推高天气活力和观察剩余层级空间。",
       progress: 1,
     };
   }
@@ -545,16 +547,19 @@ export function getPrimaryGoalViewModel(state: WeatherReactorState, exact = fals
     return {
       title: "让天气自己流动",
       description: "点击云层，购买云层注入与活力基流，打开第一段自动增长。",
+      hint: "先让速率动起来；后面凝结雨阶会清空本轮天气，但留下全局乘区。",
       progress: Math.min(1, state.bestWeather / 100),
     };
   }
 
   if (state.rainRanks < 10 && state.totalMonsoonCycles === 0) {
     const requirement = getRainRankRequirement(state);
+    const progress = Math.min(1, state.resources.weather / requirement);
     return {
       title: state.rainRanks === 0 ? "凝结第一次雨阶" : "冲向 10 雨阶",
       description: `天气活力达到 ${formatNumber(requirement, exact)} 后凝结雨阶，逐步开启生产者链。`,
-      progress: Math.min(1, state.resources.weather / requirement),
+      hint: getEarlyRainRankHint(state, progress),
+      progress,
     };
   }
 
@@ -567,6 +572,7 @@ export function getPrimaryGoalViewModel(state: WeatherReactorState, exact = fals
     return {
       title: `补足 ${requiredRainRanks} 雨阶`,
       description: `${requiredRainRanks} 雨阶后推进 ${milestone.title}。`,
+      hint: "每次凝结都会让旧流程更快；这段小循环是在为下一次大循环蓄势。",
       progress: Math.min(1, state.rainRanks / requiredRainRanks),
     };
   }
@@ -575,6 +581,7 @@ export function getPrimaryGoalViewModel(state: WeatherReactorState, exact = fals
     return {
       title: `冲向${milestone.title}`,
       description: `当前目标为 1e${targetExp.toFixed(exact ? 2 : 0)} 天气活力。`,
+      hint: "如果本轮速率明显放缓，先照看推荐培育；门槛达成后再执行循环动作。",
       progress: Math.min(1, Math.max(0, currentExp) / Math.max(1, targetExp)),
     };
   }
@@ -582,6 +589,7 @@ export function getPrimaryGoalViewModel(state: WeatherReactorState, exact = fals
   return {
     title: `执行${milestone.title}`,
     description: getMilestoneActionText(milestone.kind),
+    hint: "执行会清空部分本轮进度，但保留跨循环收获，让旧流程被压缩。",
     progress: 1,
   };
 }
@@ -741,4 +749,28 @@ function getMilestoneActionText(kind: ReturnType<typeof getCurrentMainlineMilest
     case "ending":
       return "点燃天空心脏。";
   }
+}
+
+function getEarlyRainRankHint(state: WeatherReactorState, progress: number) {
+  if (canClaimRainRank(state)) {
+    return "可以凝结了：本轮天气会回到起点，但雨阶乘区会留下，下一轮更快。";
+  }
+
+  if (state.rainRanks === 0) {
+    return "第一次凝结会清空本轮天气，但留下雨阶乘区：天气活力 ×(1+雨阶)。";
+  }
+
+  if (state.rainRanks < 3) {
+    return "前几次会慢一点；凝结后乘区叠上去，回到门槛会越来越快。";
+  }
+
+  if (state.rainRanks < 7) {
+    return "现在是加速段：买推荐培育，等待下一次凝结，旧流程会被连续压短。";
+  }
+
+  if (progress < 0.72) {
+    return "需求升高时会缓一小会，这是冲向第一次季风前的蓄势段。";
+  }
+
+  return "接近下一次凝结；攒到 10 雨阶后，第一次季风会打开更大的循环。";
 }

@@ -151,6 +151,7 @@ export function ReactorStagePanel({
         <span>当前目标</span>
         <strong>{goal.title}</strong>
         <p>{goal.description}</p>
+        {goal.hint ? <em>{goal.hint}</em> : null}
         <div className="stage-goal-card__meter" aria-hidden="true">
           <i style={{ "--progress": goal.progress } as CSSProperties} />
         </div>
