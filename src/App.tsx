@@ -60,7 +60,6 @@ import {
   type UpgradeId,
   type WeatherReactorState,
 } from "./game/economy";
-import { MainTabs } from "./ui/MainTabs";
 import { MilestoneFooter } from "./ui/MilestoneFooter";
 import { ReactorStagePanel } from "./ui/ReactorStagePanel";
 import { TopStatusBar } from "./ui/TopStatusBar";
@@ -509,8 +508,6 @@ export default function App() {
         onTogglePause={() => setIsPaused((paused) => !paused)}
       />
 
-      <MainTabs tabs={unlockedMainTabs} activeTab={activeTab} onChangeTab={setActiveTab} />
-
       <section {...getUiRegionProps("mainDeck", "incremental-main")}>
         <ReactorStagePanel
           state={state}
@@ -528,6 +525,7 @@ export default function App() {
 
         <WorkbenchPanel
           state={state}
+          tabs={unlockedMainTabs}
           activeTab={activeTab}
           selectedUpgradeGroupId={selectedUpgradeGroupId}
           exact={showExactDecimals}

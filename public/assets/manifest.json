@@ -25,6 +25,17 @@
     "uiIconPressure": "/assets/art/ui/icon_pressure.png",
     "uiIconStormCell": "/assets/art/ui/icon_storm_cell.png",
     "uiIconClimateThread": "/assets/art/ui/icon_climate_thread.png",
-    "uiIconSkyHeart": "/assets/art/ui/icon_sky_heart.png"
+    "uiIconSkyHeart": "/assets/art/ui/icon_sky_heart.png",
+    "uiDoodleCloudRain": "/assets/art/ui/doodle_cloud_rain.png",
+    "uiDoodleRaindrops": "/assets/art/ui/doodle_raindrops.png",
+    "uiDoodleWindSwirl": "/assets/art/ui/doodle_wind_swirl.png",
+    "uiDoodlePrism": "/assets/art/ui/doodle_prism.png",
+    "uiDoodleSprout": "/assets/art/ui/doodle_sprout.png",
+    "uiDoodleRainRing": "/assets/art/ui/doodle_rain_ring.png",
+    "uiDoodleIslandContour": "/assets/art/ui/doodle_island_contour.png",
+    "uiDoodleTapeStrip": "/assets/art/ui/doodle_tape_strip.png",
+    "uiDoodleCircleStamp": "/assets/art/ui/doodle_circle_stamp.png",
+    "uiDoodleArrowLoop": "/assets/art/ui/doodle_arrow_loop.png",
+    "uiDoodleLowerCloud": "/assets/art/ui/doodle_lower_cloud.png"
   }
 }

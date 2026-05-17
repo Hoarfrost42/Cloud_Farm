@@ -47,13 +47,16 @@ import {
   type WeatherReactorState,
 } from "../game/economy";
 import { FormulaPanel } from "./FormulaPanel";
+import { MainTabs } from "./MainTabs";
 import { ResourcePanel } from "./ResourcePanel";
 import { ResourceLedger } from "./ResourceLedger";
 import { UpgradeRow } from "./UpgradeRow";
+import type { MainTabDefinition } from "./uiTypes";
 import { getUiRegionProps } from "./uiRegions";
 
 interface WorkbenchPanelProps {
   state: WeatherReactorState;
+  tabs: MainTabDefinition[];
   activeTab: MainTabId;
   selectedUpgradeGroupId: UpgradeGroupId;
   exact: boolean;
@@ -74,6 +77,7 @@ interface WorkbenchPanelProps {
  */
 export function WorkbenchPanel({
   state,
+  tabs,
   activeTab,
   selectedUpgradeGroupId,
   exact,
@@ -92,16 +96,12 @@ export function WorkbenchPanel({
 
   return (
     <section {...getUiRegionProps("recoveryNotebook", "workbench-panel")}>
+      <MainTabs tabs={tabs} activeTab={activeTab} onChangeTab={onChangeTab} />
       {renderWorkbenchHeader(state, activeTab)}
       <div className="workbench-body">
         <div className="workbench-content">
           <div className="workbench-page-surface" data-active-tab={activeTab}>
-            <img
-              className="workbench-page-art"
-              src="/assets/art/ui/weather_notebook_doodles.png"
-              alt=""
-              aria-hidden="true"
-            />
+            <NotebookDoodles />
             {activeTab === "reactor" ? renderReactorTab(state) : null}
             {activeTab === "runUpgrades" ? (
               <RunUpgradeTab
@@ -134,6 +134,30 @@ export function WorkbenchPanel({
         <ResourceLedger sections={resourceLedgerSections} onOpenTab={onChangeTab} />
       </div>
     </section>
+  );
+}
+
+const NOTEBOOK_DOODLES = [
+  ["cloud-rain", "/assets/art/ui/doodle_cloud_rain.png"],
+  ["raindrops", "/assets/art/ui/doodle_raindrops.png"],
+  ["wind-swirl", "/assets/art/ui/doodle_wind_swirl.png"],
+  ["prism", "/assets/art/ui/doodle_prism.png"],
+  ["sprout", "/assets/art/ui/doodle_sprout.png"],
+  ["rain-ring", "/assets/art/ui/doodle_rain_ring.png"],
+  ["island-contour", "/assets/art/ui/doodle_island_contour.png"],
+  ["tape-strip", "/assets/art/ui/doodle_tape_strip.png"],
+  ["circle-stamp", "/assets/art/ui/doodle_circle_stamp.png"],
+  ["arrow-loop", "/assets/art/ui/doodle_arrow_loop.png"],
+  ["lower-cloud", "/assets/art/ui/doodle_lower_cloud.png"],
+] as const;
+
+function NotebookDoodles() {
+  return (
+    <div className="workbench-doodle-layer" aria-hidden="true">
+      {NOTEBOOK_DOODLES.map(([id, src]) => (
+        <img key={id} className="workbench-doodle" data-doodle={id} src={src} alt="" />
+      ))}
+    </div>
   );
 }
 
