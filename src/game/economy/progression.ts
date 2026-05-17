@@ -481,21 +481,18 @@ export function getUnlockedMainTabs(state: WeatherReactorState): MainTabDefiniti
       tier: "current",
     },
     {
+      id: "resets",
+      label: "循环",
+      ariaDescription: "雨阶、季风和后续循环动作",
+      tier: "loop",
+    },
+    {
       id: "resources",
       label: "记录",
       ariaDescription: "已经显露的天气资源记录",
       tier: "archive",
     },
   ];
-
-  if (state.rainRanks > 0 || canClaimRainRank(state) || state.bestWeather >= getRainRankRequirement(state) * 0.35) {
-    tabs.splice(1, 0, {
-      id: "resets",
-      label: "循环",
-      ariaDescription: "雨阶、季风和后续循环动作",
-      tier: "loop",
-    });
-  }
 
   if (state.totalMonsoonCycles > 0 || state.cloudCores > 0 || state.totalStormFronts > 0) {
     tabs.push({
