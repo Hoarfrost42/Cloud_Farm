@@ -231,11 +231,12 @@ function RunUpgradeTab({ state, selectedUpgradeGroupId, exact, onSelectUpgradeGr
             key={group.id}
             type="button"
             className={group.id === selectedGroup.id ? "run-group-tab run-group-tab--active" : "run-group-tab"}
+            data-tooltip={group.description}
+            aria-label={`${group.title}：${group.description}`}
             onClick={() => onSelectUpgradeGroup(group.id)}
           >
             <span>{group.badge}</span>
             <strong>{group.title}</strong>
-            <small>{group.description}</small>
           </button>
         ))}
         {nextLockedGroup ? (
@@ -314,7 +315,7 @@ function ResetTab({ state, exact, onRunPrimaryAction }: ResetTabProps) {
       id: "runFrontEcho",
       title: "前线回响",
       effect: `获得 +${getFrontEchoGain(state)} 回响，最多 ${getFrontEchoMaxCount(state)} 层`,
-      cost: "低于风暴前线的补偿小 reset",
+      cost: "前线尚未收束时的轻量回响",
       ready: canRunFrontEchoReset(state),
       visible: state.totalMonsoonCycles > 0 || canRunFrontEchoReset(state),
     },

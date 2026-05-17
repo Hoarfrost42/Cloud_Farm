@@ -3489,6 +3489,44 @@ button:disabled {
   gap: 10px;
 }
 
+.formula-rule-list {
+  display: grid;
+  gap: 6px;
+}
+
+.formula-rule-list span {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 8px;
+  border: 1px dashed rgba(151, 117, 67, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 250, 239, 0.46);
+}
+
+.formula-rule-list b,
+.formula-rule-list em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.formula-rule-list b {
+  color: var(--ledger-ink);
+  font-size: 0.72rem;
+}
+
+.formula-rule-list em {
+  color: rgba(41, 71, 95, 0.66);
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: normal;
+}
+
 .workbench-section {
   min-width: 0;
   padding: 10px;
@@ -3511,13 +3549,14 @@ button:disabled {
   display: grid;
   align-content: start;
   gap: 7px;
+  position: relative;
 }
 
 .run-group-tab {
-  min-height: 60px;
+  position: relative;
+  min-height: 54px;
   display: grid;
   grid-template-columns: 26px minmax(0, 1fr);
-  grid-template-rows: auto auto;
   gap: 2px 8px;
   align-items: center;
   padding: 8px;
@@ -3527,6 +3566,41 @@ button:disabled {
   background:
     radial-gradient(ellipse at 100% 0%, rgba(255, 217, 120, 0.1), transparent 42%),
     linear-gradient(90deg, rgba(255, 252, 246, 0.76), rgba(229, 247, 255, 0.36));
+}
+
+.run-group-tab::after {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 7px);
+  z-index: 6;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 210px;
+  padding: 8px 10px;
+  border: 1px solid rgba(151, 117, 67, 0.2);
+  border-radius: 12px;
+  color: var(--ledger-ink);
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(255, 217, 120, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(255, 253, 246, 0.98), rgba(239, 250, 255, 0.92));
+  box-shadow:
+    0 12px 24px rgba(44, 82, 105, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1.42;
+  white-space: normal;
+  opacity: 0;
+  content: attr(data-tooltip);
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.run-group-tab:hover::after,
+.run-group-tab:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .run-group-tab span {
@@ -3558,9 +3632,9 @@ button:disabled {
 .run-group-tab strong {
   color: var(--ink);
   font-size: 0.8rem;
+  align-self: center;
 }
 
-.run-group-tab small,
 .next-unlock-note small {
   color: var(--muted);
   font-size: 0.68rem;

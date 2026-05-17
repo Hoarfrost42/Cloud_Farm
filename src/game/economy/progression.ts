@@ -354,7 +354,7 @@ export function getResourceLedgerSections(
 
   resetItems.push({
     ...getResourceViewModel(state, "rainRanks", exact),
-    detail: "小 reset 乘区",
+    detail: "天气活力 ×(1+雨阶)",
     emphasis: "primary",
   });
 
@@ -642,7 +642,7 @@ export function getPrimaryAction(state: WeatherReactorState): PrimaryActionViewM
       id: "runFrontEcho",
       label: "激起回响",
       title: "前线回响",
-      description: `未够主 reset 时的小 reset，最多 ${getFrontEchoMaxCount(state)} 层。`,
+      description: `前线尚未收束时的轻量回响，最多 ${getFrontEchoMaxCount(state)} 层。`,
       enabled: true,
       progress: 1,
       rewardText: `+${getFrontEchoGain(state)} 回响`,
@@ -665,7 +665,7 @@ export function getPrimaryAction(state: WeatherReactorState): PrimaryActionViewM
     return {
       id: "claimRainRank",
       label: "凝结雨阶",
-      title: "小 reset",
+      title: "凝雨循环",
       description: "当前升级会重置，获得 1 雨阶并提高天气活力收入。",
       enabled: true,
       progress: 1,

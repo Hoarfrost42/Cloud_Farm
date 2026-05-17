@@ -88,7 +88,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: "weatherAmplifier",
     name: "天气增幅",
-    description: "增加一个独立天气活力乘区。",
+    description: "让天气活力获得一层独立回晴增益。",
     baseCost: { weather: 100 },
     costGrowth: 10,
     costSequence: { weather: [100, 1000, 10000, 30000, 100000, 300000, 1000000, 3000000, 10000000, 30000000, 100000000] },
@@ -128,7 +128,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: "heavyRain",
     name: "厚云降雨",
-    description: "增加一个较强的厚云天气乘区。",
+    description: "让厚云降雨带来更强的天气回响。",
     baseCost: { weather: 1000000000000000 },
     costGrowth: 10,
     costSequence: { weather: [1000000000000000, 100000000000000000, 100000000000000000000] },
@@ -188,7 +188,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: "frontRain",
     name: "前线积雨",
-    description: "当前前线获得额外气压指数奖励。",
+    description: "当前前线获得额外高空气压回响。",
     baseCost: { weather: 1e35 },
     costGrowth: 10000,
     costSequence: { weather: [1e35, 1e60, 1e90] },
@@ -196,7 +196,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: "thunderReturn",
     name: "雷云回流",
-    description: "生产者公共乘区获得数量级加成，后续有边际递减。",
+    description: "整条天气生产链获得雷云共鸣，后续有边际递减。",
     baseCost: { weather: 1e50 },
     costGrowth: 10000,
     costSequence: { weather: [1e50, 1e80, 1e120] },
@@ -204,7 +204,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: "overloadedRain",
     name: "过载雨阶",
-    description: "提高最大雨阶并降低雨阶需求指数。",
+    description: "提高最大雨阶并放缓后续雨阶需求坡度。",
     baseCost: { weather: 1e70 },
     costGrowth: 10000,
     costSequence: { weather: [1e70, 1e110, 1e150] },
@@ -212,7 +212,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: "climateEcho",
     name: "气候回声",
-    description: "气候指数奖励增加，后续有边际递减。",
+    description: "气候织页带来更强回声，后续有边际递减。",
     baseCost: { weather: 1e165 },
     costGrowth: 10000,
     costSequence: { weather: [1e165, 1e190, 1e220] },
@@ -220,7 +220,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: "deepVapor",
     name: "深层水汽",
-    description: "雨滴 log 系数提高。",
+    description: "雨滴积蓄的水汽回响提高。",
     baseCost: { weather: 1e175 },
     costGrowth: 10000,
     costSequence: { weather: [1e175, 1e205, 1e235] },
@@ -228,7 +228,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: "highCirculation",
     name: "高空环流",
-    description: "降低后续季风目标指数，后续有压缩上限。",
+    description: "降低后续季风目标阶位，后续有压缩上限。",
     baseCost: { weather: 1e185 },
     costGrowth: 10000,
     costSequence: { weather: [1e185, 1e215, 1e245] },
@@ -236,7 +236,7 @@ export const UPGRADE_DEFINITIONS: UpgradeDefinition[] = [
   {
     id: "skyWarmup",
     name: "天穹预热",
-    description: "降低天空心脏脉冲目标指数，后续有压缩上限。",
+    description: "降低天空心脏脉冲目标阶位，后续有压缩上限。",
     baseCost: { weather: 1e210 },
     costGrowth: 10000,
     costSequence: { weather: [1e210, 1e240] },
@@ -293,7 +293,7 @@ export const UPGRADE_GROUPS: UpgradeGroupDefinition[] = [
     id: "climateRun",
     title: "气候回声",
     badge: "VI",
-    description: "气候改写后出现的本轮指数推动。",
+    description: "气候改写后出现的本轮高空推动。",
     lockedHint: "完成第一次气候改写。",
     upgradeIds: ["climateEcho", "deepVapor", "highCirculation", "skyWarmup"],
     isUnlocked: (state) => state.totalClimateRewrites > 0,
@@ -368,7 +368,7 @@ export const PERMANENT_UPGRADES: PermanentUpgradeDefinition[] = [
   {
     id: "cloudCorePrism",
     name: "云核棱镜",
-    description: "云核提供额外指数奖励。",
+    description: "云核折射出额外高空回响。",
     cost: 12,
     isUnlocked: (state) => state.totalStormFronts >= 1,
   },
@@ -385,13 +385,13 @@ export const PRESSURE_UPGRADES: LayerUpgradeDefinition<PressureUpgradeId>[] = [
   {
     id: "lowPressure",
     name: "低压环流",
-    description: "当前前线雨阶需求指数每级 -0.8。",
+    description: "当前前线雨阶需求坡度每级降低。",
     costSequence: [1, 2, 4, 8],
   },
   {
     id: "updraft",
     name: "积雨上升",
-    description: "生产者公共乘区每级获得 +1.5 orders。",
+    description: "天气生产链每级获得 +1.5 阶回响。",
     costSequence: [1, 2, 4, 8],
   },
   {
@@ -403,7 +403,7 @@ export const PRESSURE_UPGRADES: LayerUpgradeDefinition<PressureUpgradeId>[] = [
   {
     id: "frontCompression",
     name: "前线压缩",
-    description: "当前前线后续季风目标指数每级 -3。",
+    description: "当前前线后续季风目标阶位每级降低。",
     costSequence: [3, 6, 12],
   },
   {
@@ -424,37 +424,37 @@ export const STORM_UPGRADES: LayerUpgradeDefinition<StormUpgradeId>[] = [
   {
     id: "rainOverload",
     name: "雨阶过载",
-    description: "雨阶倍率加入平方项。",
+    description: "雨阶回响加入更强叠层。",
     costSequence: [1, 2, 4],
   },
   {
     id: "thunderUpdraft",
     name: "雷暴上升",
-    description: "生产者公共乘区获得 +3 orders/级。",
+    description: "天气生产链获得 +3 阶回响/级。",
     costSequence: [2, 3, 5],
   },
   {
     id: "frontScar",
     name: "前线压痕",
-    description: "季风目标指数 -4/级。",
+    description: "季风目标阶位每级降低。",
     costSequence: [3, 5, 8],
   },
   {
     id: "stormBatch",
     name: "暴雨批处理",
-    description: "自动凝雨可在 tick 内跨越多个雨阶。",
+    description: "自动凝雨可在一次回拢中跨越多个雨阶。",
     costSequence: [4],
   },
   {
     id: "windEyeRelic",
     name: "风眼遗迹",
-    description: "雨阶 reset 后保留风眼牵引 Lv.1。",
+    description: "凝结雨阶后保留风眼牵引 Lv.1。",
     costSequence: [5],
   },
   {
     id: "stormPrism",
     name: "风暴棱镜",
-    description: "风暴胞指数奖励提高。",
+    description: "风暴胞带来的高空回响提高。",
     costSequence: [8, 12],
   },
 ];
@@ -472,13 +472,13 @@ export const CLIMATE_LAWS: LayerUpgradeDefinition<ClimateLawId>[] = [
   {
     id: "condensationLaw",
     name: "凝雨法则",
-    description: "雨阶倍率获得更强平方项，最大雨阶提高。",
+    description: "雨阶回响获得更强叠层，最大雨阶提高。",
     costSequence: [2, 4, 6],
   },
   {
     id: "deepRootLaw",
     name: "深根法则",
-    description: "生产者 log 系数提高。",
+    description: "天气生产链的积蓄回响提高。",
     costSequence: [2, 4, 6],
   },
   {
@@ -490,13 +490,13 @@ export const CLIMATE_LAWS: LayerUpgradeDefinition<ClimateLawId>[] = [
   {
     id: "stormWeaving",
     name: "风暴编织",
-    description: "风暴胞收益与风暴指数上限提高。",
+    description: "风暴胞收益与风暴回响上限提高。",
     costSequence: [3, 5],
   },
   {
     id: "cloudCoreRefraction",
     name: "云核折射",
-    description: "云核转入指数奖励。",
+    description: "云核折射为高空回响。",
     costSequence: [4],
   },
   {
@@ -658,7 +658,7 @@ export function getUpgradeActionDescription(state: WeatherReactorState, upgrade:
     case "dropletSeed":
       return `天气活力基础增长增加 ${formatRate(getDropletSeedWeatherRate(state.upgrades.dropletSeed + 1) - getDropletSeedWeatherRate(state.upgrades.dropletSeed), exact)}/秒。`;
     case "weatherAmplifier":
-      return `天气活力外部乘区变为原来的 ${formatMultiplier(WEATHER_AMPLIFIER_MULTIPLIER, exact)} 倍。`;
+      return `天气活力的独立回晴增益变为原来的 ${formatMultiplier(WEATHER_AMPLIFIER_MULTIPLIER, exact)} 倍。`;
     case "cooldownDraft":
       return "已从当前路线移除。";
     case "rootWake":
@@ -693,19 +693,19 @@ export function getUpgradeActionDescription(state: WeatherReactorState, upgrade:
     case "pressureGaugeRun":
       return "后续季风获得的气压增加。";
     case "frontRain":
-      return "当前前线的气压指数奖励增加。";
+      return "当前前线的高空气压回响增加。";
     case "thunderReturn":
-      return "生产者公共乘区获得数量级加成，后续有边际递减。";
+      return "天气生产链获得雷云共鸣，后续有边际递减。";
     case "overloadedRain":
-      return "最大雨阶提高，并降低雨阶需求指数。";
+      return "最大雨阶提高，并放缓后续雨阶需求坡度。";
     case "climateEcho":
-      return "气候指数奖励增加，后续有边际递减。";
+      return "气候织页的回声增强，后续有边际递减。";
     case "deepVapor":
-      return "雨滴 log 系数提高。";
+      return "雨滴积蓄的水汽回响提高。";
     case "highCirculation":
-      return "后续季风目标指数降低，后续有压缩上限。";
+      return "后续季风目标阶位降低，后续有压缩上限。";
     case "skyWarmup":
-      return "天空心脏脉冲目标指数降低，后续有压缩上限。";
+      return "天空心脏脉冲目标阶位降低，后续有压缩上限。";
     default:
       return upgrade.description;
   }
