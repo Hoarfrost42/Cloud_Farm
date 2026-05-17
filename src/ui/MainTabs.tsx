@@ -19,6 +19,8 @@ export function MainTabs({ tabs, activeTab, onChangeTab }: MainTabsProps) {
           type="button"
           className={tab.id === activeTab ? "main-tab main-tab--active" : "main-tab"}
           aria-current={tab.id === activeTab ? "page" : undefined}
+          aria-label={`${tab.label}，${tab.ariaDescription}`}
+          data-ui-tier={tab.tier}
           onClick={() => onChangeTab(tab.id)}
         >
           {tab.label}

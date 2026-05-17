@@ -75,6 +75,8 @@ export type MainTabId =
 export interface MainTabDefinition {
   id: MainTabId;
   label: string;
+  ariaDescription: string;
+  tier: "current" | "loop" | "archive" | "deep" | "system";
 }
 
 export type PrimaryActionId =
@@ -472,20 +474,53 @@ export function getVisibleHudStats(state: WeatherReactorState, exact = false) {
  */
 export function getUnlockedMainTabs(state: WeatherReactorState): MainTabDefinition[] {
   const tabs: MainTabDefinition[] = [
-    { id: "runUpgrades", label: "培育" },
-    { id: "resets", label: "循环" },
-    { id: "resources", label: "记录" },
+    {
+      id: "runUpgrades",
+      label: "培育",
+      ariaDescription: "当前可培育的天气升级",
+      tier: "current",
+    },
+    {
+      id: "resources",
+      label: "记录",
+      ariaDescription: "已经显露的天气资源记录",
+      tier: "archive",
+    },
   ];
 
+  if (state.rainRanks > 0 || canClaimRainRank(state) || state.bestWeather >= getRainRankRequirement(state) * 0.35) {
+    tabs.splice(1, 0, {
+      id: "resets",
+      label: "循环",
+      ariaDescription: "雨阶、季风和后续循环动作",
+      tier: "loop",
+    });
+  }
+
   if (state.totalMonsoonCycles > 0 || state.cloudCores > 0 || state.totalStormFronts > 0) {
-    tabs.push({ id: "atlas", label: "图谱" });
+    tabs.push({
+      id: "atlas",
+      label: "图谱",
+      ariaDescription: "跨循环成长图谱",
+      tier: "deep",
+    });
   }
 
   if (state.rainRanks > 0 || state.cloudLevel >= 2 || state.totalMonsoonCycles > 0) {
-    tabs.push({ id: "formula", label: "批注" });
+    tabs.push({
+      id: "formula",
+      label: "批注",
+      ariaDescription: "天气公式和细节批注",
+      tier: "deep",
+    });
   }
 
-  tabs.push({ id: "settings", label: "书签" });
+  tabs.push({
+    id: "settings",
+    label: "书签",
+    ariaDescription: "显示和存档设置",
+    tier: "system",
+  });
   return tabs;
 }
 

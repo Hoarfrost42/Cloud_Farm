@@ -2271,18 +2271,18 @@ button:disabled {
   align-items: stretch;
   gap: 5px;
   padding: 6px 10px 0;
-  border-bottom: 1px solid rgba(151, 117, 67, 0.18);
+  border-bottom: 1px solid var(--surface-page-line);
   background:
     radial-gradient(ellipse at 14% 0%, rgba(255, 255, 255, 0.58), transparent 34%),
-    linear-gradient(180deg, rgba(255, 250, 239, 0.8), rgba(224, 243, 251, 0.58)),
-    repeating-linear-gradient(90deg, rgba(156, 128, 79, 0.04) 0 1px, transparent 1px 48px);
+    linear-gradient(180deg, var(--surface-page-wash), rgba(224, 243, 251, 0.58)),
+    repeating-linear-gradient(90deg, var(--surface-page-rule-soft) 0 1px, transparent 1px 48px);
 }
 
 .main-tab {
   min-width: 86px;
   min-height: 34px;
   padding: 4px 14px;
-  border-color: rgba(156, 128, 79, 0.18);
+  border-color: var(--state-idle-line);
   border-bottom-right-radius: 0;
   border-bottom-left-radius: 0;
   border-radius: 12px 12px 0 0;
@@ -2294,15 +2294,20 @@ button:disabled {
 }
 
 .main-tab--active {
-  border-color: rgba(156, 128, 79, 0.3);
-  border-bottom-color: rgba(255, 250, 239, 0.98);
+  border-color: var(--state-selected-line);
+  border-bottom-color: var(--surface-page-bg);
   color: var(--ink);
   background:
     radial-gradient(ellipse at 50% 0%, rgba(255, 217, 120, 0.18), transparent 56%),
-    linear-gradient(180deg, rgba(255, 250, 239, 0.98), rgba(248, 252, 247, 0.9));
+    linear-gradient(180deg, var(--surface-page-bg), rgba(248, 252, 247, 0.9));
   box-shadow:
     inset 0 3px 0 rgba(98, 191, 231, 0.52),
     0 1px 0 rgba(156, 128, 79, 0.06);
+}
+
+.main-tab[data-ui-tier="deep"],
+.main-tab[data-ui-tier="system"] {
+  min-width: 74px;
 }
 
 .incremental-main {
