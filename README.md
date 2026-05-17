@@ -1,10 +1,83 @@
-# 云屿回晴 / Cloud Island v13 lab
+# 云屿回晴 / Cloud Island
 
-这里是《云屿回晴》的 v13 实验仓库。旧名为 `Cloud Island / 云上小岛`，当前 UI 方向已从“天气反应堆”收束为“空岛复苏手账”：玩家从第一次点击凝聚天气活力开始，让沉睡的空中小岛逐步回晴。
+《云屿回晴》是一款轻量的天气主题增量游戏原型。
+
+从第一次点击云层、凝聚天气活力开始，玩家会一点点唤醒一座安静的空中小岛：让雨重新落下，让天气自己流动，让沉睡的高空回响逐步浮现。
+
+当前版本是一个可试玩的单屏 UI 原型，重点是完整体验“点击 -> 培育 -> 凝结 -> 回响 -> 继续推进”的放置循环，而不是最终美术版。
+
+## 游戏体验
+
+玩家一开始只能手动点击云层，获得天气活力。随着本轮培育不断推进，新的注入方式、自动增长、雨阶、季风、风暴前线和气候改写会逐步解锁。
+
+核心节奏：
 
 ```text
-v13 / Post-Monsoon Complete Slice
+点击云层注入天气活力
+-> 购买培育项
+-> 凝结雨阶
+-> 推进季风与高空回响
+-> 解锁更深层的天气循环
+-> 点燃天空心脏
 ```
+
+当前目标不是经营农田，而是让天气本身重新生长。
+
+## 当前可玩内容
+
+- 单屏天气手账式 UI。
+- 点击云层获得天气活力。
+- 多层升级与自动增长。
+- 雨阶、季风、风暴前线、气候改写、天空心脏等完整进度链。
+- 顶部晴雨脉象、右侧观察笔记、升级页签、批注页公式说明。
+- 本地存档，刷新后可继续游玩。
+- Windows Electron 目录包，可直接运行 `CloudIsland.exe`。
+
+## 试玩方式
+
+安装依赖：
+
+```bash
+npm install
+```
+
+启动浏览器版本：
+
+```bash
+npm run dev
+```
+
+本地地址通常是：
+
+```text
+http://127.0.0.1:5190
+```
+
+如果端口被占用，Vite 会自动使用后续端口。
+
+## Windows 桌面版
+
+生成可直接运行的 Windows 目录包：
+
+```bash
+npm run package:desktop
+```
+
+产物位置：
+
+```text
+release-desktop/win-unpacked/CloudIsland.exe
+```
+
+这里使用 Electron Builder 的 `dir` target，只生成 `win-unpacked` 目录，不额外生成安装器。把整个 `win-unpacked` 文件夹发给试玩者即可运行。
+
+## 当前版本状态
+
+```text
+v13 / Single-Screen Weather Notebook Prototype
+```
+
+当前模拟显示，熟悉玩法或偏贪心的路线大约可在 2-4 小时内完成主流程；更保守或误导路线可能会拉长到 6 小时以上。现阶段保留一定路线差异，只要求存在正常可完成路径。
 
 当前存档 key：
 
@@ -12,56 +85,7 @@ v13 / Post-Monsoon Complete Slice
 cloud-island-weather-reactor-v13-complete-slice
 ```
 
-当前 GitHub 仓库：
-
-```text
-https://github.com/Hoarfrost42/Cloud_Farm
-```
-
-## 当前事实源
-
-优先阅读：
-
-```text
-docs/weather-reactor-v13-implementation-summary.md
-docs/weather-reactor-external-discussion-brief.md
-docs/weather-reactor-simulation-strategy-notes.md
-docs/current-code-map.md
-docs/README.md
-```
-
-旧 v12 文档仍保留为第一季风前公式、调参和决策历史。若旧文档与 v13 实现总表冲突，以 v13 实现总表为准。
-
-## 当前游戏主线
-
-当前是 React 文本化天气增量原型，主线结构为：
-
-```text
-点击云层注入天气活力
--> 购买本轮升级
--> 凝结雨阶
--> 第一次季风
--> 云核天赋压缩旧流程
--> 气压与风暴前线
--> 气候改写
--> 天空心脏脉冲
--> 1e308 终局
-```
-
-当前已接入：
-
-- log-safe 天气活力结算。
-- 雨阶、季风、风暴前线、气候改写、天空心脏 reset 链。
-- 云核天赋、气压升级、风暴图谱、气候法则。
-- 主线目标卡、公式摘要、买前/买后速率预览。
-- 多策略模拟器，用于查看不同玩家路线是否卡死或过快。
-
-暂未完成：
-
-- 最终平衡曲线。
-- 主动气候法则槽。
-- 结局动画和统计面板。
-- 视觉大改或 Pixi/Phaser 路线恢复。
+如果遇到旧存档导致状态异常，可以在浏览器开发者工具中清理 localStorage，或在游戏内使用重置入口。
 
 ## 技术栈
 
@@ -71,6 +95,7 @@ React
 TypeScript
 CSS
 localStorage
+Electron
 ```
 
 当前主线不使用后端、账号系统、3D 引擎、Redux、PixiJS 或 Phaser。旧 v0 农场路线、Pixi 画布路线、Phaser 伪 2.5D 实验已归档到：
@@ -79,9 +104,7 @@ localStorage
 archive/legacy-v0-pixi-phaser/
 ```
 
-这些内容只作历史参考，不属于当前 v13 主线。
-
-## 目录结构
+## 开发入口
 
 当前有效入口：
 
@@ -108,55 +131,15 @@ src/game/economy/
   index.ts
 ```
 
-当前主要模拟脚本：
+Electron 入口：
 
 ```text
-scripts/simulate-weather-strategies.mjs
+electron/main.cjs
 ```
-
-旧脚本 `scripts/simulate-weather-reactor.mjs` 仍在仓库中，但不作为 v13 平衡验收口径。
-
-## 本地运行
-
-安装依赖：
-
-```bash
-npm install
-```
-
-启动开发服务器：
-
-```bash
-npm run dev
-```
-
-本地端口通常是：
-
-```text
-http://127.0.0.1:5190
-```
-
-如果端口被占用，Vite 会自动使用后续端口。
-
-## 桌面目录包
-
-生成 Windows Electron 目录包：
-
-```bash
-npm run package:desktop
-```
-
-产物位置：
-
-```text
-release-desktop/win-unpacked/CloudIsland.exe
-```
-
-这里使用 Electron Builder 的 `dir` target，只生成可直接运行的 `win-unpacked` 目录，不额外生成安装器。
 
 ## 验收命令
 
-每次改动后运行：
+常规检查：
 
 ```bash
 npm run typecheck
@@ -164,32 +147,32 @@ npm run build
 npm run simulate:weather-strategies
 ```
 
-当前最新模拟基线记录在：
+桌面包检查：
+
+```bash
+npm run package:desktop
+```
+
+旧脚本 `scripts/simulate-weather-reactor.mjs` 仍在仓库中，但当前平衡验收以 `scripts/simulate-weather-strategies.mjs` 为准。
+
+## 项目文档
+
+开发和调参事实源：
 
 ```text
 docs/weather-reactor-v13-implementation-summary.md
+docs/weather-reactor-external-discussion-brief.md
+docs/weather-reactor-simulation-strategy-notes.md
+docs/current-code-map.md
+docs/README.md
 ```
 
-## 当前调参状态
-
-最新模拟显示 v13 全流程可以跑到 `1e308`，但曲线仍偏快，尤其第一风暴后的风暴图谱顺序会产生隐藏最优解风险。当前诊断基线已把所有策略的风暴顺序统一为：
-
-```text
-frontMemory -> thunderUpdraft -> rainOverload -> stormBatch -> windEyeRelic -> frontScar -> stormPrism
-```
-
-下一轮优先处理：
-
-1. 第一风暴后的风暴主干 redesign，避免研究树式隐藏最优解。
-2. 以所有玩家都完成风暴主干为共同基线，重新拉长第二风暴后到 `1e308` 的曲线到约 2-3 小时。
-3. 检查 `thunderUpdraft`、风暴胞指数、气候法则指数和天空心脏脉冲的贡献。
-4. 增强模拟器，让缺少人工试玩时也能判断数值合理性。
-5. UI 降噪，把非当前环节的公式和图谱信息移入切换页、弹窗或详情视图。
+旧 v12 文档仍保留为第一季风前公式、调参和决策历史。若旧文档与 v13 实现总表冲突，以 v13 实现总表为准。
 
 ## 开发原则
 
-- 只在当前 lab 仓库内继续，不默认修改 `F:\Cloud_Farm`。
-- 以 `docs/weather-reactor-v13-implementation-summary.md` 为当前实现事实源。
+- 以当前单屏天气手账原型为主线。
 - 小步修改，避免一次性重构整套经济系统。
 - 数值改动后必须跑模拟器。
 - UI 显示口径、公式口径和文档口径要同步更新。
+- 当前仓库是 `F:\Cloud_Farm_v12_lab` 的 lab 分支，不默认修改旧目录。
