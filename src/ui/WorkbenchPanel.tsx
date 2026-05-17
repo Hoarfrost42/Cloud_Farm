@@ -141,7 +141,6 @@ const NOTEBOOK_DOODLES = [
   ["cloud-rain", "/assets/art/ui/doodle_cloud_rain.png"],
   ["raindrops", "/assets/art/ui/doodle_raindrops.png"],
   ["wind-swirl", "/assets/art/ui/doodle_wind_swirl.png"],
-  ["prism", "/assets/art/ui/doodle_prism.png"],
   ["sprout", "/assets/art/ui/doodle_sprout.png"],
   ["rain-ring", "/assets/art/ui/doodle_rain_ring.png"],
   ["island-contour", "/assets/art/ui/doodle_island_contour.png"],

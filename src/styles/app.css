@@ -3069,7 +3069,7 @@ button:disabled {
   --doodle-opacity: 0.82;
   --doodle-rotation: -6deg;
   left: 58%;
-  top: 26%;
+  top: 33%;
 }
 
 .workbench-doodle[data-doodle="wind-swirl"] {
@@ -3077,7 +3077,7 @@ button:disabled {
   --doodle-opacity: 0.8;
   --doodle-rotation: -4deg;
   left: 86%;
-  top: 30%;
+  top: 38%;
 }
 
 .workbench-doodle[data-doodle="prism"] {
