@@ -1829,7 +1829,6 @@ button:disabled {
   --footer-h: 34px;
   --page-warmth: #fff6df;
   --page-warmth-soft: #fffaf0;
-  --page-fiber: rgba(156, 128, 79, 0.07);
   --sky-breath: #c8efff;
   --sky-breath-soft: #e9f8ff;
   --living-rain: #62bfe7;
@@ -1846,6 +1845,22 @@ button:disabled {
   --station-line: rgba(50, 85, 105, 0.16);
   --station-line-strong: rgba(43, 78, 98, 0.26);
   --station-shadow: 0 18px 36px rgba(44, 82, 105, 0.11);
+  --surface-sky-panel: var(--station-paper);
+  --surface-sky-panel-dim: var(--station-paper-dim);
+  --surface-sky-border: var(--station-line);
+  --surface-sky-shadow: var(--station-shadow);
+  --surface-page-bg: rgba(255, 250, 239, 0.94);
+  --surface-page-bg-soft: rgba(255, 252, 246, 0.86);
+  --surface-page-wash: rgba(255, 250, 239, 0.58);
+  --surface-page-line: rgba(151, 117, 67, 0.18);
+  --surface-page-line-soft: rgba(151, 117, 67, 0.12);
+  --surface-page-rule: rgba(156, 128, 79, 0.07);
+  --surface-page-rule-soft: rgba(156, 128, 79, 0.045);
+  --surface-margin-bg: rgba(255, 246, 222, 0.94);
+  --surface-margin-bg-soft: rgba(255, 253, 246, 0.78);
+  --surface-margin-rule: rgba(149, 125, 79, 0.24);
+  --surface-gloss: rgba(255, 255, 255, 0.76);
+  --page-fiber: var(--surface-page-rule);
   --panel-bg: var(--station-paper);
   --panel-border: var(--station-line);
   --ink: #314c5a;
@@ -1857,7 +1872,7 @@ button:disabled {
   --ledger-paper: var(--page-warmth);
   --ledger-paper-soft: var(--page-warmth-soft);
   --ledger-ink: #4d6370;
-  --ledger-line: rgba(151, 117, 67, 0.18);
+  --ledger-line: var(--surface-page-line);
   --blue: #73c7ff;
   --gold: #ffd978;
   --green: #74b966;
@@ -1999,12 +2014,12 @@ button:disabled {
   gap: 12px;
   align-items: center;
   padding: 6px 12px 5px;
-  border-bottom: 1px solid rgba(151, 117, 67, 0.18);
+  border-bottom: 1px solid var(--surface-page-line);
   background:
     radial-gradient(ellipse at 12% 50%, rgba(255, 255, 255, 0.72), transparent 32%),
     radial-gradient(ellipse at 74% 0%, var(--mood-wash), transparent 38%),
-    linear-gradient(90deg, rgba(255, 250, 239, 0.9), rgba(238, 250, 255, 0.78)),
-    repeating-linear-gradient(90deg, rgba(156, 128, 79, 0.045) 0 1px, transparent 1px 42px);
+    linear-gradient(90deg, var(--surface-page-bg), rgba(238, 250, 255, 0.78)),
+    repeating-linear-gradient(90deg, var(--surface-page-rule-soft) 0 1px, transparent 1px 42px);
   box-shadow:
     0 8px 20px rgba(44, 82, 105, 0.07),
     inset 0 -1px 0 rgba(255, 255, 255, 0.62);
@@ -2289,12 +2304,12 @@ button:disabled {
 .workbench-panel {
   min-width: 0;
   min-height: 0;
-  border: 1px solid var(--panel-border);
+  border: 1px solid var(--surface-sky-border);
   border-radius: 14px;
-  background: var(--panel-bg);
+  background: var(--surface-sky-panel);
   box-shadow:
-    var(--station-shadow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.76);
+    var(--surface-sky-shadow),
+    inset 0 1px 0 var(--surface-gloss);
 }
 
 .reactor-stage-panel {
@@ -2729,7 +2744,7 @@ button:disabled {
     radial-gradient(ellipse at 82% 8%, rgba(255, 255, 255, 0.66), transparent 36%),
     radial-gradient(ellipse at 20% 100%, var(--mood-wash), transparent 46%),
     repeating-linear-gradient(180deg, var(--page-fiber) 0 1px, transparent 1px 18px),
-    linear-gradient(180deg, rgba(255, 250, 239, 0.94), rgba(255, 252, 246, 0.86));
+    linear-gradient(180deg, var(--surface-page-bg), var(--surface-page-bg-soft));
   color: var(--ledger-ink);
 }
 
@@ -2896,12 +2911,12 @@ button:disabled {
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  border-left: 1px dashed rgba(149, 125, 79, 0.24);
+  border-left: 1px dashed var(--surface-margin-rule);
   background:
     radial-gradient(ellipse at 44% 0%, rgba(255, 255, 255, 0.78), transparent 42%),
     radial-gradient(ellipse at 80% 100%, var(--mood-wash), transparent 52%),
     repeating-linear-gradient(180deg, rgba(149, 125, 79, 0.07) 0 1px, transparent 1px 18px),
-    linear-gradient(180deg, rgba(255, 246, 222, 0.94), rgba(255, 253, 246, 0.78));
+    linear-gradient(180deg, var(--surface-margin-bg), var(--surface-margin-bg-soft));
   color: var(--ledger-ink);
 }
 
@@ -2931,7 +2946,7 @@ button:disabled {
   border-bottom: 1px solid var(--ledger-line);
   background:
     radial-gradient(ellipse at 100% 0%, rgba(255, 217, 120, 0.18), transparent 42%),
-    linear-gradient(90deg, rgba(255, 253, 246, 0.88), rgba(237, 249, 254, 0.5));
+    linear-gradient(90deg, var(--surface-page-bg-soft), rgba(237, 249, 254, 0.5));
 }
 
 .resource-ledger__header div {
@@ -3461,11 +3476,11 @@ button:disabled {
   gap: 10px;
   align-items: center;
   padding: 5px 14px;
-  border-top: 1px solid rgba(151, 117, 67, 0.18);
+  border-top: 1px solid var(--surface-page-line);
   background:
     radial-gradient(ellipse at 92% 0%, var(--mood-wash), transparent 34%),
     radial-gradient(ellipse at 10% 100%, rgba(255, 217, 120, 0.14), transparent 34%),
-    linear-gradient(180deg, rgba(255, 250, 239, 0.92), rgba(225, 242, 250, 0.58)),
+    linear-gradient(180deg, var(--surface-page-bg), rgba(225, 242, 250, 0.58)),
     repeating-linear-gradient(90deg, rgba(151, 117, 67, 0.035) 0 1px, transparent 1px 64px);
   color: var(--ink);
 }
@@ -3485,9 +3500,9 @@ button:disabled {
 }
 
 .milestone-footer__meter {
-  border: 1px solid rgba(151, 117, 67, 0.12);
+  border: 1px solid var(--surface-page-line-soft);
   background:
-    linear-gradient(90deg, rgba(255, 250, 239, 0.7), rgba(237, 249, 254, 0.5));
+    linear-gradient(90deg, var(--surface-page-wash), rgba(237, 249, 254, 0.5));
 }
 
 @media (max-width: 1180px) {
